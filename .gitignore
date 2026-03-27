@@ -1,0 +1,17 @@
+# Ignore editor and OS files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+*.suo
+*.user
+*.cache
+*.bak
+
+# Ignore folders that can be regenerated
+templates_c/
+cache/
+
+# VS Code workspace files
+*.code-workspace

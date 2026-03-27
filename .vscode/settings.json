@@ -1,0 +1,13 @@
+{
+    "editor.mouseWheelZoom": true,
+    "chat.tools.terminal.autoApprove": {
+        "/^if \\(Test-Path 'ContPOS/DB\\.sql'\\) \\{ Write-Host 'DBSQL_EXISTS'; Get-Content 'ContPOS/DB\\.sql' -TotalCount 10 \\} else \\{ Write-Host 'NO_DBSQL' \\}$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^git add --all ; git commit -m \"Backup full project and SQL Server dump to GitHub\" ; git push origin master$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
