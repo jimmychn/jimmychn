@@ -58,18 +58,18 @@ if ($action === 'view') {
 }
 
 if ($action === 'insert') {
-    $storeID = isset($_POST['StoreID']) ? trim($_POST['StoreID']) : '';
-    $storeName = isset($_POST['StoreName']) ? trim($_POST['StoreName']) : '';
-    $taxId = isset($_POST['TAXID']) ? trim($_POST['TAXID']) : '';
-    $title = isset($_POST['TITLE']) ? trim($_POST['TITLE']) : '';
-    $zipCode = isset($_POST['ZIPCode']) ? trim($_POST['ZIPCode']) : '';
-    $city = isset($_POST['CITY']) ? trim($_POST['CITY']) : '';
-    $area = isset($_POST['AREA']) ? trim($_POST['AREA']) : '';
-    $address = isset($_POST['Address']) ? trim($_POST['Address']) : '';
-    $managerID = isset($_POST['ManagerID']) ? trim($_POST['ManagerID']) : '';
-    $tel = isset($_POST['TEL']) ? trim($_POST['TEL']) : '';
-    $fax = isset($_POST['FAX']) ? trim($_POST['FAX']) : '';
-    $isActive = isset($_POST['IsActive']) && $_POST['IsActive'] === '1' ? 1 : 0;
+    $storeID = isset($_REQUEST['StoreID']) ? trim($_REQUEST['StoreID']) : '';
+    $storeName = isset($_REQUEST['StoreName']) ? trim($_REQUEST['StoreName']) : '';
+    $taxId = isset($_REQUEST['TAXID']) ? trim($_REQUEST['TAXID']) : '';
+    $title = isset($_REQUEST['TITLE']) ? trim($_REQUEST['TITLE']) : '';
+    $zipCode = isset($_REQUEST['ZIPCode']) ? trim($_REQUEST['ZIPCode']) : '';
+    $city = isset($_REQUEST['CITY']) ? trim($_REQUEST['CITY']) : '';
+    $area = isset($_REQUEST['AREA']) ? trim($_REQUEST['AREA']) : '';
+    $address = isset($_REQUEST['Address']) ? trim($_REQUEST['Address']) : '';
+    $managerID = isset($_REQUEST['ManagerID']) ? trim($_REQUEST['ManagerID']) : '';
+    $tel = isset($_REQUEST['TEL']) ? trim($_REQUEST['TEL']) : '';
+    $fax = isset($_REQUEST['FAX']) ? trim($_REQUEST['FAX']) : '';
+    $isActive = isset($_REQUEST['IsActive']) && $_REQUEST['IsActive'] === '1' ? 1 : 0;
 
     $sql = "INSERT INTO Stores (StoreID, StoreName, TAXID, TITLE, ZIPCode, CITY, AREA, Address, ManagerID, TEL, FAX, IsActive)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -80,18 +80,18 @@ if ($action === 'insert') {
 }
 
 if ($action === 'update') {
-    $storeID = isset($_POST['StoreID']) ? trim($_POST['StoreID']) : '';
-    $storeName = isset($_POST['StoreName']) ? trim($_POST['StoreName']) : '';
-    $taxId = isset($_POST['TAXID']) ? trim($_POST['TAXID']) : '';
-    $title = isset($_POST['TITLE']) ? trim($_POST['TITLE']) : '';
-    $zipCode = isset($_POST['ZIPCode']) ? trim($_POST['ZIPCode']) : '';
-    $city = isset($_POST['CITY']) ? trim($_POST['CITY']) : '';
-    $area = isset($_POST['AREA']) ? trim($_POST['AREA']) : '';
-    $address = isset($_POST['Address']) ? trim($_POST['Address']) : '';
-    $managerID = isset($_POST['ManagerID']) ? trim($_POST['ManagerID']) : '';
-    $tel = isset($_POST['TEL']) ? trim($_POST['TEL']) : '';
-    $fax = isset($_POST['FAX']) ? trim($_POST['FAX']) : '';
-    $isActive = isset($_POST['IsActive']) && $_POST['IsActive'] === '1' ? 1 : 0;
+    $storeID = isset($_REQUEST['StoreID']) ? trim($_REQUEST['StoreID']) : '';
+    $storeName = isset($_REQUEST['StoreName']) ? trim($_REQUEST['StoreName']) : '';
+    $taxId = isset($_REQUEST['TAXID']) ? trim($_REQUEST['TAXID']) : '';
+    $title = isset($_REQUEST['TITLE']) ? trim($_REQUEST['TITLE']) : '';
+    $zipCode = isset($_REQUEST['ZIPCode']) ? trim($_REQUEST['ZIPCode']) : '';
+    $city = isset($_REQUEST['CITY']) ? trim($_REQUEST['CITY']) : '';
+    $area = isset($_REQUEST['AREA']) ? trim($_REQUEST['AREA']) : '';
+    $address = isset($_REQUEST['Address']) ? trim($_REQUEST['Address']) : '';
+    $managerID = isset($_REQUEST['ManagerID']) ? trim($_REQUEST['ManagerID']) : '';
+    $tel = isset($_REQUEST['TEL']) ? trim($_REQUEST['TEL']) : '';
+    $fax = isset($_REQUEST['FAX']) ? trim($_REQUEST['FAX']) : '';
+    $isActive = isset($_REQUEST['IsActive']) && $_REQUEST['IsActive'] === '1' ? 1 : 0;
 
     $sql = "UPDATE Stores SET StoreName = ?, TAXID = ?, TITLE = ?, ZIPCode = ?, CITY = ?, AREA = ?, Address = ?, ManagerID = ?, TEL = ?, FAX = ?, IsActive = ? WHERE StoreID = ?";
     $params = array($storeName, $taxId, $title, $zipCode, $city, $area, $address, $managerID, $tel, $fax, $isActive, $storeID);
@@ -101,7 +101,7 @@ if ($action === 'update') {
 }
 
 if ($action === 'delete') {
-    $storeID = isset($_POST['StoreID']) ? trim($_POST['StoreID']) : '';
+    $storeID = isset($_REQUEST['StoreID']) ? trim($_REQUEST['StoreID']) : '';
     $sql = "DELETE FROM Stores WHERE StoreID = ?";
     dbExecute($pdo, $sql, array($storeID), 'StoresAPI', 'DeleteRow', $username, $storeID);
     echo json_encode(array('success' => true));

@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>門市管理</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -49,11 +49,11 @@
 </head>
 <body class="bg-light">
 
-<div class="container-fluid p-4">
+<div class="container-fluid p-2">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
     <div>
       <h3 class="mb-1">門市管理</h3>
-      <p class="text-secondary mb-0">使用 StoreID/StoreName + 職位欄位、JSON API、共用 Modal CRUD</p>
+      <p class="text-secondary mb-0">管理門市資料，提供查詢、新增、編輯與刪除功能。</p>
     </div>
   </div>
 
@@ -394,17 +394,17 @@ function openViewModal(storeID) {
     $('#storeModalTitle').text('檢視門市 ' + storeID);
     $('#formAction').val('view');
     $('#StoreID').val(resp.row.StoreID).prop('readonly', true);
-    $('#StoreName').val(resp.row.StoreName);
-    $('#TAXID').val(resp.row.TAXID);
-    $('#TITLE').val(resp.row.TITLE);
+    $('#StoreName').val(resp.row.StoreName).prop('readonly', true);
+    $('#TAXID').val(resp.row.TAXID).prop('readonly', true);
+    $('#TITLE').val(resp.row.TITLE).prop('readonly', true);
     $('#ZIPCode').val(resp.row.ZIPCode).trigger('change');
-    $('#CITY').val(resp.row.CITY);
-    $('#AREA').val(resp.row.AREA);
-    $('#Address').val(resp.row.Address);
-    $('#ManagerID').val(resp.row.ManagerID);
-    $('#TEL').val(resp.row.TEL);
-    $('#FAX').val(resp.row.FAX);
-    $('#IsActive').val(resp.row.IsActive == 1 ? '1' : '0');
+    $('#CITY').val(resp.row.CITY).prop('readonly', true);
+    $('#AREA').val(resp.row.AREA).prop('readonly', true);
+    $('#Address').val(resp.row.Address).prop('readonly', true);
+    $('#ManagerID').val(resp.row.ManagerID).prop('readonly', true);
+    $('#TEL').val(resp.row.TEL).prop('readonly', true);
+    $('#FAX').val(resp.row.FAX).prop('readonly', true);
+    $('#IsActive').val(resp.row.IsActive == 1 ? '1' : '0').prop('readonly', true);
     $('#saveButton').hide();
     $('#storeModal').modal('show');
   }).fail(function () {

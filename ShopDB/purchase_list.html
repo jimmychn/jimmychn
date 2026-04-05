@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進貨單據管理 - 進銷存系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { background-color: #f0f4f1; }
+        .table-v-align td { vertical-align: middle; }
+        @media (max-width: 768px) {
+            .hide-mobile { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <!-- 標題與功能按鈕 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-file-invoice text-success me-2"></i>進貨單據列表</h2>
+        <a href="purchase_order.html" class="btn btn-success shadow-sm">
+            <i class="fa-solid fa-plus"></i> 新增進貨單
+        </a>
+    </div>
+
+    <!-- 搜尋列 -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" id="searchInput" class="form-control" placeholder="輸入進貨單號或供應商搜尋..." onkeyup="loadPurchases(1)">
+            </div>
+        </div>
+    </div>
+
+    <!-- 進貨單列表 -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-v-align mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>單號 / 日期</th>
+                            <th>供應商</th>
+                            <th class="text-end hide-mobile">金額</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchaseTableBody">
+                        <!-- 資料由 JS 動態載入 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- 分頁 -->
+        <div class="card-footer bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small" id="pageInfo">載入中...</span>
+                <nav><ul class="pagination pagination-sm mb-0" id="paginationBtns"></ul></nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://jsdelivr.net"></script>
+
+<script>
+    window.onload = () => loadPurchases(1);
+
+    async function loadPurchases(page = 1) {
+        const q = document.getElementById('searchInput').value;
+        try {
+            const res = await fetch(`api/get_purchases.php?q=${encodeURIComponent(q)}&page=${page}`);
+            const result = await res.json();
+
+            if (result.status === 'error') throw new Error(result.message);
+
+            const tbody = document.getElementById('purchaseTableBody');
+            if (result.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">查無進貨紀錄</td></tr>';
+            } else {
+                tbody.innerHTML = result.data.map(p => `
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-success">${p.purchase_no}</div>
+                            <div class="small text-muted">${p.purchase_date}</div>
+                        </td>
+                        <td>${p.supplier_name}</td>
+                        <td class="text-end fw-bold hide-mobile">$${parseFloat(p.total_amount).toLocaleString()}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-secondary me-1" title="查看明細" onclick="viewDetail('${p.purchase_no}')">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-dark" title="列印" onclick="window.open('print_order.html?no=${p.purchase_no}&type=purchase', '_blank')">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            renderPagination(result.pagination);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function renderPagination(pg) {
+        document.getElementById('pageInfo').innerText = `第 ${pg.current_page} 頁 / 共 ${pg.total_pages} 頁 (共 ${pg.total_rows} 筆)`;
+        let btns = '';
+        for (let i = 1; i <= pg.total_pages; i++) {
+            btns += `<li class="page-item ${i === pg.current_page ? 'active' : ''}">
+                        <a class="page-link" onclick="loadPurchases(${i})">${i}</a>
+                     </li>`;
+        }
+        document.getElementById('paginationBtns').innerHTML = btns;
+    }
+
+    function viewDetail(no) {
+        // 這裡可以導向一個單據檢視頁，或直接彈出 Modal 顯示
+        Swal.fire('提示', '正在開發：查看單號 ' + no + ' 的詳細內容', 'info');
+    }
+</script>
+</body>
+</html>

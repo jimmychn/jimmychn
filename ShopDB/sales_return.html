@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>銷貨退回作業 - 進銷存系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body class="bg-light">
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-arrow-rotate-left text-danger"></i> 銷貨退回</h2>
+        <button class="btn btn-danger shadow-sm" onclick="saveReturn()"><i class="fa-solid fa-save"></i> 儲存退回單</button>
+    </div>
+
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">輸入原銷貨單號</label>
+                    <div class="input-group">
+                        <input type="text" id="originOrderNo" class="form-control" placeholder="SOXXXXXXXX">
+                        <button class="btn btn-primary" onclick="fetchOrderDetails()">一鍵帶入</button>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div id="custInfo" class="mt-4 fw-bold text-primary"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>產品名稱</th>
+                        <th class="text-center">原數</th>
+                        <th class="text-center" style="width:120px">退回數</th>
+                        <th class="text-end">單價</th>
+                        <th class="text-end">退款小計</th>
+                    </tr>
+                </thead>
+                <tbody id="returnBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 網址若有帶單號自動載入
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const no = urlParams.get('no');
+        if(no) { document.getElementById('originOrderNo').value = no; fetchOrderDetails(); }
+    };
+
+    async function fetchOrderDetails() {
+        const no = document.getElementById('originOrderNo').value;
+        const res = await fetch(`api/get_order_details.php?order_no=${no}`);
+        const result = await res.json();
+        if(result.status === 'error') return Swal.fire('錯誤', result.message, 'error');
+
+        document.getElementById('custInfo').innerText = '客戶：' + result.data[0].customer_name;
+        document.getElementById('returnBody').innerHTML = result.data.map(item => `
+            <tr class="item-row" data-pid="${item.product_id}">
+                <td>${item.product_name}</td>
+                <td class="text-center">${item.qty}</td>
+                <td><input type="number" class="form-control form-control-sm text-center return-qty" value="${item.qty}" max="${item.qty}" onchange="calc()"></td>
+                <td class="text-end price">${item.price}</td>
+                <td class="text-end subtotal">${item.qty * item.price}</td>
+            </tr>
+        `).join('');
+    }
+
+    function calc() {
+        document.querySelectorAll('.item-row').forEach(row => {
+            const qty = row.querySelector('.return-qty').value;
+            const price = row.querySelector('.price').innerText;
+            row.querySelector('.subtotal').innerText = (qty * price).toLocaleString();
+        });
+    }
+
+    async function saveReturn() {
+        const items = [];
+        document.querySelectorAll('.item-row').forEach(row => {
+            items.push({
+                product_id: row.dataset.pid,
+                qty: row.querySelector('.return-qty').value,
+                price: row.querySelector('.price').innerText
+            });
+        });
+
+        const payload = {
+            origin_order_no: document.getElementById('originOrderNo').value,
+            items: items
+        };
+
+        const res = await fetch('api/save_return.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(data.status === 'success') {
+            Swal.fire('成功', '退回單已儲存，庫存已回補', 'success').then(() => location.href='sales_order_list.html');
+        } else {
+            Swal.fire('錯誤', data.message, 'error');
+        }
+    }
+	
+	if (data.status === 'success') {
+		Swal.fire({
+			title: '退回單已儲存',
+			text: '是否立即列印單據？',
+			icon: 'success',
+			showCancelButton: true,
+			confirmButtonText: '立即列印',
+			cancelButtonText: '回列表'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				window.open(`print_order.html?no=${data.return_no}&type=return`, '_blank');
+			}
+			location.href = 'sales_order_list.html';
+		});
+	}
+
+	// 在銷貨單列表的「操作」欄位增加此按鈕
+	function printOrder(orderNo) {
+		// 開啟新視窗列印
+		window.open(`print_order.html?no=${orderNo}&type=sales`, '_blank');
+	}
+	
+</script>
+</body>
+</html>

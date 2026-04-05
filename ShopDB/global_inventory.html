@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全門市庫存看板 - 總部專用</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body class="bg-light">
+
+<div class="container-fluid py-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between">
+            <h5 class="mb-0"><i class="fa-solid fa-earth-asia me-2"></i>全門市庫存對照表</h5>
+            <small id="updateTime"></small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0 align-middle">
+                    <thead class="table-secondary text-center">
+                        <tr>
+                            <th>品號 / 品名</th>
+                            <th>台北總店</th>
+                            <th>台中分店</th>
+                            <th class="table-primary">公司總庫存</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody" class="text-center">
+                        <!-- 由 JS 載入 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadGlobalInventory() {
+        const res = await fetch('api/get_global_inventory.php');
+        const result = await res.json();
+        
+        if(result.status === 'success') {
+            document.getElementById('updateTime').innerText = '最後更新：' + result.update_time;
+            const tbody = document.getElementById('inventoryBody');
+            
+            tbody.innerHTML = result.data.map(p => `
+                <tr>
+                    <td class="text-start ps-3">
+                        <div class="fw-bold">${p.name}</div>
+                        <small class="text-muted">${p.sku}</small>
+                    </td>
+                    <td class="${p.stock_taipei <= 5 ? 'text-danger fw-bold' : ''}">${p.stock_taipei}</td>
+                    <td class="${p.stock_taichung <= 5 ? 'text-danger fw-bold' : ''}">${p.stock_taichung}</td>
+                    <td class="table-primary fw-bold">${p.global_total}</td>
+                </tr>
+            `).join('');
+        } else {
+            alert(result.message);
+        }
+    }
+    window.onload = loadGlobalInventory;
+</script>
+</body>
+</html>

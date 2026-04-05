@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>產品資料管理 - 進銷存系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { background-color: #f4f7f6; }
+        .table-v-align td { vertical-align: middle; }
+        .stock-badge { min-width: 60px; font-size: 0.9rem; }
+        @media (max-width: 768px) {
+            .hide-mobile { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <!-- 標題與新增按鈕 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-box-open text-primary me-2"></i>產品管理</h2>
+        <button class="btn btn-primary shadow-sm" onclick="openAddModal()">
+            <i class="fa-solid fa-plus"></i> 新增產品
+        </button>
+    </div>
+
+    <!-- 搜尋與過濾 -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-12 col-md-9">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="輸入品名、條碼或規格搜尋..." onkeyup="loadProducts(1)">
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <select id="statusFilter" class="form-select" onchange="loadProducts(1)">
+                        <option value="1">顯示使用中</option>
+                        <option value="0">顯示已停用</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 產品列表表格 -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-v-align mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>產品代號</th>
+                            <th class="hide-mobile">規格</th>
+                            <th class="text-center">本分店庫存</th>
+                            <th class="hide-mobile">售價</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTableBody">
+                        <!-- 資料載入中... -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- 分頁資訊 -->
+        <div class="card-footer bg-white py-3">
+            <div class="row align-items-center text-center text-md-start">
+                <div class="col-12 col-md-6 mb-2 mb-md-0">
+                    <span class="text-muted small" id="paginationInfo"></span>
+                </div>
+                <div class="col-12 col-md-6">
+                    <nav><ul class="pagination pagination-sm justify-content-center justify-content-md-end mb-0" id="paginationBtns"></ul></nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 產品編輯 Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form id="productForm" class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="modalTitle">產品資料</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">產品代號 <span class="text-danger">*</span></label>
+                        <input type="text" id="prodSku" class="form-control" required placeholder="如：BARCODE-001">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">產品名稱 <span class="text-danger">*</span></label>
+                        <input type="text" id="prodName" class="form-control" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">規格說明</label>
+                        <input type="text" id="prodSpec" class="form-control" placeholder="如：500ml / 黑色">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">單位</label>
+                        <input type="text" id="prodUnit" class="form-control" placeholder="個/支/箱" value="個">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label text-danger">初始庫存 (限新增)</label>
+                        <input type="number" id="initStock" class="form-control" value="0">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">進貨成本 (進價)</label>
+                        <input type="number" id="prodPurchase" class="form-control" value="0">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">建議售價</label>
+                        <input type="number" id="prodSales" class="form-control" value="0">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="submit" class="btn btn-primary">儲存產品</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 庫存異動日誌彈窗 -->
+<div class="modal fade" id="logModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fa-solid fa-clock-rotate-left"></i> 庫存異動紀錄</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>時間</th>
+                                <th>類型</th>
+                                <th>變動數量</th>
+                                <th>關聯單號/備註</th>
+                                <th>操作者</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logTableBody">
+                            <!-- 資料載入中... -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+    let currentPage = 1;
+
+    window.onload = () => loadProducts(1);
+
+    async function loadProducts(page = 1) {
+        currentPage = page;
+        const q = document.getElementById('searchInput').value;
+        const isActive = document.getElementById('statusFilter').value;
+        
+        const res = await fetch(`api/get_products.php?q=${encodeURIComponent(q)}&page=${page}&is_active=${isActive}`);
+        const result = await res.json();
+
+        renderTable(result.data);
+        renderPagination(result.pagination);
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('productTableBody');
+        tbody.innerHTML = data.map(p => `
+            <tr>
+                <td>
+                    <div class="small text-muted">${p.product_id}</div>
+                    <div class="fw-bold">${p.name}</div>
+                </td>
+                <td class="hide-mobile">${p.spec || '-'}</td>
+                <td class="text-center">
+                    <span class="badge ${p.stock_qty <= 5 ? 'bg-danger' : 'bg-success'} stock-badge">
+                        ${p.stock_qty} ${p.unit}
+                    </span>
+                </td>
+                <td class="hide-mobile text-primary fw-bold">$${parseFloat(p.sales_price).toLocaleString()}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" title="庫存明細" onclick="viewLogs(${p.id})">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderPagination(pg) {
+        document.getElementById('paginationInfo').innerText = `第 ${pg.current_page} 頁 / 共 ${pg.total_pages} 頁`;
+        let btns = '';
+        for (let i = 1; i <= pg.total_pages; i++) {
+            btns += `<li class="page-item ${i === pg.current_page ? 'active' : ''}">
+                        <a class="page-link" onclick="loadProducts(${i})">${i}</a>
+                     </li>`;
+        }
+        document.getElementById('paginationBtns').innerHTML = btns;
+    }
+
+    function openAddModal() {
+        document.getElementById('productForm').reset();
+        document.getElementById('prodId').value = '';
+        document.getElementById('initStock').disabled = false;
+        document.getElementById('modalTitle').innerText = '新增產品資料';
+        productModal.show();
+    }
+
+    function editProduct(p) {
+        document.getElementById('modalTitle').innerText = '修改產品資料';
+        document.getElementById('prodId').value = p.product_id;
+        document.getElementById('prodName').value = p.name;
+        document.getElementById('prodSpec').value = p.spec;
+        document.getElementById('prodUnit').value = p.unit;
+        document.getElementById('prodPurchase').value = p.purchase_price;
+        document.getElementById('prodSales').value = p.sales_price;
+        document.getElementById('initStock').disabled = true; // 修改時不允許直接改初始庫存
+        productModal.show();
+    }
+
+    document.getElementById('productForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            product_id: document.getElementById('prodId').value,
+            name: document.getElementById('prodName').value,
+            spec: document.getElementById('prodSpec').value,
+            unit: document.getElementById('prodUnit').value,
+            purchase_price: document.getElementById('prodPurchase').value,
+            sales_price: document.getElementById('prodSales').value,
+            init_stock: document.getElementById('initStock').value
+        };
+
+        const res = await fetch('api/save_product.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(data.status === 'success') {
+            productModal.hide();
+            Swal.fire('成功', '產品資料已儲存', 'success');
+            loadProducts(currentPage);
+        }
+    };
+	
+	
+	const logModal = new bootstrap.Modal(document.getElementById('logModal'));
+
+	async function viewLogs(productId) {
+		const tbody = document.getElementById('logTableBody');
+		tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">載入中...</td></tr>';
+		logModal.show();
+
+		try {
+			const res = await fetch(`api/get_stock_logs.php?product_id=${productId}`);
+			const logs = await res.json();
+
+			if (logs.length === 0) {
+				tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">目前尚無異動紀錄</td></tr>';
+				return;
+			}
+
+			tbody.innerHTML = logs.map(l => {
+				// 根據類型顯示不同顏色
+				let typeBadge = '';
+				if (l.type === 'IN') typeBadge = '<span class="badge bg-success">進貨</span>';
+				else if (l.type === 'OUT') typeBadge = '<span class="badge bg-danger">銷貨</span>';
+				else typeBadge = '<span class="badge bg-secondary">調整</span>';
+
+				const qtyColor = l.qty > 0 ? 'text-success' : 'text-danger';
+				const qtySign = l.qty > 0 ? '+' : '';
+
+				const isVoid = l.relation_no && l.relation_no.includes('作廢:');
+				const rowClass = isVoid ? 'table-warning text-decoration-line-through' : '';
+				const voidBadge = isVoid ? '<span class="badge bg-dark text-white ms-1">單據作廢沖銷</span>' : '';
+
+				return `
+					<tr class="${rowClass}">
+						<td class="small">${l.created_at}</td>
+						<td>${typeBadge} ${voidBadge}</td>
+						<td class="fw-bold ${qtyColor}">${qtySign}${l.qty}</td>
+						<td class="small text-muted">${l.relation_no || '-'}</td>
+						<td>${l.real_name || '系統'}</td>
+					</tr>
+				`;
+			}).join('');
+		} catch (error) {
+			tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">載入失敗</td></tr>';
+		}
+	}
+
+</script>
+</body>
+</html>

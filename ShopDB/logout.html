@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>系統登出</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f7f6;
+            margin: 0;
+        }
+        .logout-box { text-align: center; padding: 40px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="logout-box">
+    <h2>正在登出並關閉所有標籤頁...</h2>
+    <p>請稍候，正在安全切換至登入畫面。</p>
+</div>
+
+<script>
+    // 1. 清除前端所有暫存
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 2. 破除框架跳轉 (Break out of frames)
+    // 使用 window.top 確保是針對最外層的瀏覽器視窗執行跳轉
+    setTimeout(function() {
+        window.top.location.href = 'api/logout.php';
+    }, 1000);
+</script>
+
+</body>
+</html>

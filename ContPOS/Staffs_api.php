@@ -81,22 +81,22 @@ function convertBirthdayMonth($birthday) {
 }
 
 if ($action === 'insert') {
-    $staffID = isset($_POST['StaffID']) ? trim($_POST['StaffID']) : '';
-    $storeID = isset($_POST['StoreID']) ? trim($_POST['StoreID']) : '';
-    $name = isset($_POST['Name']) ? trim($_POST['Name']) : '';
-    $gender = isset($_POST['Gender']) ? trim($_POST['Gender']) : '';
-    $position = isset($_POST['Position']) ? trim($_POST['Position']) : '';
-    $zipCode = isset($_POST['ZIPCode']) ? trim($_POST['ZIPCode']) : '';
-    $city = isset($_POST['CITY']) ? trim($_POST['CITY']) : '';
-    $area = isset($_POST['AREA']) ? trim($_POST['AREA']) : '';
-    $address = isset($_POST['Address']) ? trim($_POST['Address']) : '';
-    $tel = isset($_POST['TEL']) ? trim($_POST['TEL']) : '';
-    $mobile = isset($_POST['Mobile']) ? trim($_POST['Mobile']) : '';
-    $email = isset($_POST['Email']) ? trim($_POST['Email']) : '';
-    $lineID = isset($_POST['LineID']) ? trim($_POST['LineID']) : '';
-    $facebookID = isset($_POST['FacebookID']) ? trim($_POST['FacebookID']) : '';
-    $birthday = isset($_POST['Birthday']) ? trim($_POST['Birthday']) : '';
-    $active = isset($_POST['Active']) && $_POST['Active'] === '1' ? 1 : 0;
+    $staffID = isset($_REQUEST['StaffID']) ? trim($_REQUEST['StaffID']) : '';
+    $storeID = isset($_REQUEST['StoreID']) ? trim($_REQUEST['StoreID']) : '';
+    $name = isset($_REQUEST['Name']) ? trim($_REQUEST['Name']) : '';
+    $gender = isset($_REQUEST['Gender']) ? trim($_REQUEST['Gender']) : '';
+    $position = isset($_REQUEST['Position']) ? trim($_REQUEST['Position']) : '';
+    $zipCode = isset($_REQUEST['ZIPCode']) ? trim($_REQUEST['ZIPCode']) : '';
+    $city = isset($_REQUEST['CITY']) ? trim($_REQUEST['CITY']) : '';
+    $area = isset($_REQUEST['AREA']) ? trim($_REQUEST['AREA']) : '';
+    $address = isset($_REQUEST['Address']) ? trim($_REQUEST['Address']) : '';
+    $tel = isset($_REQUEST['TEL']) ? trim($_REQUEST['TEL']) : '';
+    $mobile = isset($_REQUEST['Mobile']) ? trim($_REQUEST['Mobile']) : '';
+    $email = isset($_REQUEST['Email']) ? trim($_REQUEST['Email']) : '';
+    $lineID = isset($_REQUEST['LineID']) ? trim($_REQUEST['LineID']) : '';
+    $facebookID = isset($_REQUEST['FacebookID']) ? trim($_REQUEST['FacebookID']) : '';
+    $birthday = isset($_REQUEST['Birthday']) ? trim($_REQUEST['Birthday']) : '';
+    $active = isset($_REQUEST['Active']) && $_REQUEST['Active'] === '1' ? 1 : 0;
     $birthMonth = convertBirthdayMonth($birthday);
 
     $sql = "INSERT INTO Staffs (StaffID, StoreID, Name, Gender, Position, ZIPCode, CITY, AREA, Address, TEL, Mobile, Email, LineID, FacebookID, Birthday, BirthMonth, Active, CreatedAt, ModifiedAt)
@@ -107,22 +107,22 @@ if ($action === 'insert') {
 }
 
 if ($action === 'update') {
-    $staffID = isset($_POST['StaffID']) ? trim($_POST['StaffID']) : '';
-    $storeID = isset($_POST['StoreID']) ? trim($_POST['StoreID']) : '';
-    $name = isset($_POST['Name']) ? trim($_POST['Name']) : '';
-    $gender = isset($_POST['Gender']) ? trim($_POST['Gender']) : '';
-    $position = isset($_POST['Position']) ? trim($_POST['Position']) : '';
-    $zipCode = isset($_POST['ZIPCode']) ? trim($_POST['ZIPCode']) : '';
-    $city = isset($_POST['CITY']) ? trim($_POST['CITY']) : '';
-    $area = isset($_POST['AREA']) ? trim($_POST['AREA']) : '';
-    $address = isset($_POST['Address']) ? trim($_POST['Address']) : '';
-    $tel = isset($_POST['TEL']) ? trim($_POST['TEL']) : '';
-    $mobile = isset($_POST['Mobile']) ? trim($_POST['Mobile']) : '';
-    $email = isset($_POST['Email']) ? trim($_POST['Email']) : '';
-    $lineID = isset($_POST['LineID']) ? trim($_POST['LineID']) : '';
-    $facebookID = isset($_POST['FacebookID']) ? trim($_POST['FacebookID']) : '';
-    $birthday = isset($_POST['Birthday']) ? trim($_POST['Birthday']) : '';
-    $active = isset($_POST['Active']) && $_POST['Active'] === '1' ? 1 : 0;
+    $staffID = isset($_REQUEST['StaffID']) ? trim($_REQUEST['StaffID']) : '';
+    $storeID = isset($_REQUEST['StoreID']) ? trim($_REQUEST['StoreID']) : '';
+    $name = isset($_REQUEST['Name']) ? trim($_REQUEST['Name']) : '';
+    $gender = isset($_REQUEST['Gender']) ? trim($_REQUEST['Gender']) : '';
+    $position = isset($_REQUEST['Position']) ? trim($_REQUEST['Position']) : '';
+    $zipCode = isset($_REQUEST['ZIPCode']) ? trim($_REQUEST['ZIPCode']) : '';
+    $city = isset($_REQUEST['CITY']) ? trim($_REQUEST['CITY']) : '';
+    $area = isset($_REQUEST['AREA']) ? trim($_REQUEST['AREA']) : '';
+    $address = isset($_REQUEST['Address']) ? trim($_REQUEST['Address']) : '';
+    $tel = isset($_REQUEST['TEL']) ? trim($_REQUEST['TEL']) : '';
+    $mobile = isset($_REQUEST['Mobile']) ? trim($_REQUEST['Mobile']) : '';
+    $email = isset($_REQUEST['Email']) ? trim($_REQUEST['Email']) : '';
+    $lineID = isset($_REQUEST['LineID']) ? trim($_REQUEST['LineID']) : '';
+    $facebookID = isset($_REQUEST['FacebookID']) ? trim($_REQUEST['FacebookID']) : '';
+    $birthday = isset($_REQUEST['Birthday']) ? trim($_REQUEST['Birthday']) : '';
+    $active = isset($_REQUEST['Active']) && $_REQUEST['Active'] === '1' ? 1 : 0;
     $birthMonth = convertBirthdayMonth($birthday);
 
     $sql = "UPDATE Staffs SET StoreID = ?, Name = ?, Gender = ?, Position = ?, ZIPCode = ?, CITY = ?, AREA = ?, Address = ?, TEL = ?, Mobile = ?, Email = ?, LineID = ?, FacebookID = ?, Birthday = ?, BirthMonth = ?, Active = ?, ModifiedAt = GETDATE() WHERE StaffID = ?";
@@ -132,7 +132,7 @@ if ($action === 'update') {
 }
 
 if ($action === 'delete') {
-    $staffID = isset($_POST['StaffID']) ? trim($_POST['StaffID']) : '';
+    $staffID = isset($_REQUEST['StaffID']) ? trim($_REQUEST['StaffID']) : '';
     $sql = "DELETE FROM Staffs WHERE StaffID = ?";
     dbExecute($pdo, $sql, array($staffID), 'StaffsAPI', 'DeleteRow', $username, $storeID);
     echo json_encode(array('success' => true));

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>供應商對帳報表 - 進銷存系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { background-color: #f8f9fa; }
+        .report-card { background: white; border-radius: 10px; padding: 25px; }
+        .text-minus { color: #d63384; } /* 退貨金額顯示為桃紅色 */
+        /* 列印最佳化：隱藏搜尋列與導覽 */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; padding: 0; }
+            .report-card { border: none; box-shadow: none; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <!-- 搜尋過濾區 (列印時隱藏) -->
+    <div class="card shadow-sm mb-4 border-0 no-print">
+        <div class="card-body">
+            <h5 class="card-title mb-3"><i class="fa-solid fa-filter me-2"></i>對帳條件篩選</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small">選擇供應商</label>
+                    <select id="supplier_id" class="form-select"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">開始日期</label>
+                    <input type="date" id="date_start" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">結束日期</label>
+                    <input type="date" id="date_end" class="form-control">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="fetchStatement()">
+                        <i class="fa-solid fa-magnifying-glass"></i> 查詢
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 報表顯示區 -->
+    <div class="report-card shadow-sm">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">供應商對帳清單</h2>
+            <p class="text-muted">查詢期間：<span id="displayRange">--</span></p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr class="text-center">
+                        <th>日期</th>
+                        <th>類型</th>
+                        <th>單據編號</th>
+                        <th class="text-end">金額</th>
+                        <th>備註</th>
+                    </tr>
+                </thead>
+                <tbody id="statementBody">
+                    <tr><td colspan="5" class="text-center py-5 text-muted">請選擇條件並點擊查詢</td></tr>
+                </tbody>
+                <tfoot>
+                    <tr class="table-warning fw-bold">
+                        <td colspan="3" class="text-end">本期應付總計 (進貨 - 退回)</td>
+                        <td class="text-end text-danger" id="totalSum">$ 0</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- 功能按鈕 (列印時隱藏) -->
+        <div class="mt-4 text-end no-print">
+            <button class="btn btn-outline-dark" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> 列印對帳單
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 頁面啟動初始化
+    window.onload = async () => {
+        // 設定預設日期為本月
+        const now = new Date();
+        document.getElementById('date_start').value = now.toISOString().substring(0, 8) + '01';
+        document.getElementById('date_end').value = now.toISOString().substring(0, 10);
+        
+        // 載入供應商選單 (複用之前寫的 API)
+        const res = await fetch('api/get_suppliers.php');
+        const result = await res.json();
+        const select = document.getElementById('supplier_id');
+        select.innerHTML = '<option value="">-- 請選擇 --</option>' + 
+            result.data.map(s => `<option value="${s.id}">${s.supplier_name}</option>`).join('');
+    };
+
+    // 執行查詢邏輯
+    async function fetchStatement() {
+        const sid = document.getElementById('supplier_id').value;
+        const ds = document.getElementById('date_start').value;
+        const de = document.getElementById('date_end').value;
+
+        if(!sid) return alert('請選擇供應商');
+
+        const res = await fetch(`api/get_supplier_statement.php?supplier_id=${sid}&date_start=${ds}&date_end=${de}`);
+        const result = await res.json();
+
+        if(result.status === 'success') {
+            document.getElementById('displayRange').innerText = result.date_range;
+            const tbody = document.getElementById('statementBody');
+            
+            if(result.details.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">此期間無交易紀錄</td></tr>';
+            } else {
+                tbody.innerHTML = result.details.map(row => `
+                    <tr>
+                        <td class="text-center">${row.doc_date}</td>
+                        <td class="text-center">
+                            <span class="badge ${row.type==='進貨' ? 'bg-success' : 'bg-danger'}">${row.type}</span>
+                        </td>
+                        <td class="text-center fw-bold">${row.doc_no}</td>
+                        <td class="text-end ${row.amount < 0 ? 'text-minus' : ''}">
+                            ${parseFloat(row.amount).toLocaleString()}
+                        </td>
+                        <td class="small text-muted">${row.remark || '-'}</td>
+                    </tr>
+                `).join('');
+            }
+            document.getElementById('totalSum').innerText = '$ ' + parseFloat(result.total_sum).toLocaleString();
+        }
+    }
+</script>
+</body>
+</html>

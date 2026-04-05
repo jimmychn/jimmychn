@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客戶資料管理 - 進銷存系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { background-color: #f4f7f6; }
+        .table-v-align td { vertical-align: middle; }
+        /* 手機版隱藏次要欄位 */
+        @media (max-width: 768px) {
+            .hide-mobile { display: none; }
+            .btn-text { display: none; } /* 手機版按鈕只留圖示 */
+        }
+        .page-link { cursor: pointer; }
+        .is-inactive { background-color: #f1f1f1 !important; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <!-- 標題與功能按鈕 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-address-book text-primary me-2"></i>客戶管理</h2>
+        <button class="btn btn-primary shadow-sm" onclick="openAddModal()">
+            <i class="fa-solid fa-plus"></i> <span class="btn-text">新增客戶</span>
+        </button>
+    </div>
+
+    <!-- 搜尋與篩選列 -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-12 col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="輸入名稱、聯絡人或電話搜尋..." onkeyup="loadCustomers(1)">
+                    </div>
+                </div>
+                <div class="col-12 col-md-4 text-md-end">
+                    <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input" type="checkbox" id="showInactive" onchange="loadCustomers(1)">
+                        <label class="form-check-label small" for="showInactive">顯示已停用客戶</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 客戶列表表格 -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-v-align mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>客戶名稱</th>
+                            <th class="hide-mobile">聯絡人</th>
+                            <th>電話</th>
+                            <th class="hide-mobile">地址</th>
+                            <th class="text-center" style="width: 150px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTableBody">
+                        <!-- 資料由 JS 動態載入 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- 表格底部：分頁資訊與按鈕 -->
+        <div class="card-footer bg-white py-3">
+            <div class="row align-items-center">
+                <div class="col-12 col-md-6 text-center text-md-start mb-3 mb-md-0">
+                    <span class="text-muted small" id="paginationInfo">載入中...</span>
+                </div>
+                <div class="col-12 col-md-6">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm justify-content-center justify-content-md-end mb-0" id="paginationBtns">
+                            <!-- 分頁按鈕由 JS 動態載入 -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/修改 Modal -->
+<div class="modal fade" id="customerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="customerForm" class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">新增客戶資料</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="custId">
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">客戶名稱 <span class="text-danger">*</span></label>
+                    <input type="text" id="custName" class="form-control" placeholder="公司行號或個人姓名" required>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">聯絡人</label>
+                        <input type="text" id="custContact" class="form-control" placeholder="張先生">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">聯絡電話</label>
+                        <input type="tel" id="custTel" class="form-control" placeholder="0912345678">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">送貨/聯絡地址</label>
+                    <input type="text" id="custAddress" class="form-control" placeholder="完整收貨地址">
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="submit" class="btn btn-primary px-4"><i class="fa-solid fa-save me-1"></i> 儲存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const customerModalObj = new bootstrap.Modal(document.getElementById('customerModal'));
+    let currentPage = 1;
+
+    // 頁面載入後自動執行
+    window.onload = () => loadCustomers(1);
+
+    // 1. 核心載入函式
+    async function loadCustomers(page = 1) {
+        currentPage = page;
+        const q = document.getElementById('searchInput').value;
+        const showInactive = document.getElementById('showInactive').checked;
+
+        try {
+            const res = await fetch(`api/get_customers.php?q=${encodeURIComponent(q)}&page=${page}&show_inactive=${showInactive}`);
+            if (!res.ok) throw new Error('API 連線失敗');
+            const result = await res.json();
+
+            renderTable(result.data);
+            renderPagination(result.pagination);
+        } catch (error) {
+            console.error(error);
+            Swal.fire('錯誤', '無法載入客戶資料，請檢查網路或 API', 'error');
+        }
+    }
+
+    // 2. 渲染表格
+    function renderTable(data) {
+        const tbody = document.getElementById('customerTableBody');
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">目前沒有符合的客戶資料</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(c => `
+            <tr class="${c.is_active == 0 ? 'is-inactive text-muted' : ''}">
+                <td>
+                    <span class="fw-bold text-dark">${c.customer_name}</span>
+                    ${c.is_active == 0 ? '<span class="badge bg-secondary ms-1">已停用</span>' : ''}
+                </td>
+                <td class="hide-mobile">${c.contact_person || '-'}</td>
+                <td><a href="tel:${c.tel}" class="text-decoration-none text-primary">${c.tel || '-'}</a></td>
+                <td class="hide-mobile text-truncate" style="max-width: 250px;">${c.address || '-'}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary me-1" title="修改" onclick="openEditModal(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    ${c.is_active == 1 ? 
+                        `<button class="btn btn-sm btn-outline-danger" title="停用" onclick="updateStatus(${c.id}, 0, '${c.customer_name}')"><i class="fa-solid fa-trash-can"></i></button>` : 
+                        `<button class="btn btn-sm btn-outline-success" title="恢復" onclick="updateStatus(${c.id}, 1, '${c.customer_name}')"><i class="fa-solid fa-rotate-left"></i></button>`
+                    }
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // 3. 渲染分頁
+    function renderPagination(pg) {
+        document.getElementById('paginationInfo').innerText = `第 ${pg.current_page} 頁 / 共 ${pg.total_pages} 頁 (共 ${pg.total_rows} 筆)`;
+        
+        let btns = '';
+        // 上一頁
+        btns += `<li class="page-item ${pg.current_page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" onclick="loadCustomers(${pg.current_page - 1})">上一頁</a>
+                 </li>`;
+
+        // 頁碼 (簡單演算法：顯示當前頁前後 2 頁)
+        for (let i = 1; i <= pg.total_pages; i++) {
+            if (i === pg.current_page) {
+                btns += `<li class="page-item active"><a class="page-link">${i}</a></li>`;
+            } else if (i >= pg.current_page - 2 && i <= pg.current_page + 2) {
+                btns += `<li class="page-item"><a class="page-link" onclick="loadCustomers(${i})">${i}</a></li>`;
+            }
+        }
+
+        // 下一頁
+        btns += `<li class="page-item ${pg.current_page === pg.total_pages || pg.total_pages === 0 ? 'disabled' : ''}">
+                    <a class="page-link" onclick="loadCustomers(${pg.current_page + 1})">下一頁</a>
+                 </li>`;
+        
+        document.getElementById('paginationBtns').innerHTML = btns;
+    }
+
+    // 4. Modal 控制 (新增/修改)
+    function openAddModal() {
+        document.getElementById('customerForm').reset();
+        document.getElementById('custId').value = '';
+        document.getElementById('modalTitle').innerText = '新增客戶資料';
+        customerModalObj.show();
+    }
+
+    function openEditModal(c) {
+        document.getElementById('modalTitle').innerText = '修改客戶資料';
+        document.getElementById('custId').value = c.id;
+        document.getElementById('custName').value = c.customer_name;
+        document.getElementById('custContact').value = c.contact_person;
+        document.getElementById('custTel').value = c.tel;
+        document.getElementById('custAddress').value = c.address;
+        customerModalObj.show();
+    }
+
+    // 5. 儲存 API 呼叫
+    document.getElementById('customerForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            id: document.getElementById('custId').value,
+            customer_name: document.getElementById('custName').value,
+            contact_person: document.getElementById('custContact').value,
+            tel: document.getElementById('custTel').value,
+            address: document.getElementById('custAddress').value
+        };
+
+        const res = await fetch('api/save_customer.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+
+        if (result.status === 'success') {
+            customerModalObj.hide();
+            Swal.fire({ icon: 'success', title: '儲存完成', timer: 1000, showConfirmButton: false });
+            loadCustomers(currentPage);
+        }
+    };
+
+    // 6. 更新狀態 (停用/恢復) API 呼叫
+    async function updateStatus(id, newStatus, name) {
+        const actionText = newStatus === 1 ? '恢復使用' : '停用';
+        const result = await Swal.fire({
+            title: `確定要${actionText}客戶「${name}」？`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '確定',
+            cancelButtonText: '取消'
+        });
+
+        if (result.isConfirmed) {
+            // 這裡可以複用 api/delete_customer.php，或者新寫一個 api/update_customer_status.php
+            // 為了方便，我們假設 API 接收 status 參數
+            const res = await fetch('api/update_customer_status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: newStatus })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                Swal.fire('成功', `該客戶已${actionText}`, 'success');
+                loadCustomers(currentPage);
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

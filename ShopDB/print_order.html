@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>單據列印系統 - 進銷存系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        /* --- 基礎顯示樣式 --- */
+        body { background: #525659; padding: 30px; display: flex; flex-direction: column; align-items: center; }
+        .print-area { background: white; box-shadow: 0 0 10px rgba(0,0,0,0.5); padding: 20px; transition: 0.3s; }
+        
+        /* --- 紙張尺寸定義 --- */
+        /* A4 格式 */
+        .format-a4 { width: 210mm; min-height: 297mm; }
+        /* A5 橫向 */
+        .format-a5 { width: 210mm; min-height: 148mm; }
+        /* 熱感小票格式 (寬度固定，高度隨內容增長) */
+        .format-58mm { width: 58mm; padding: 5px !important; font-size: 12px !important; }
+        .format-80mm { width: 80mm; padding: 8px !important; font-size: 14px !important; }
+        .format-110mm { width: 110mm; padding: 10px !important; font-size: 16px !important; }
+
+        /* --- 列印控制 --- */
+        @media print {
+            body { background: white; padding: 0; display: block; }
+            .no-print { display: none !important; }
+            .print-area { box-shadow: none; margin: 0 auto !important; }
+            /* 針對熱感紙移除邊距 */
+            .format-58mm, .format-80mm, .format-110mm { width: 100%; }
+        }
+
+        /* 小票專用表格微調 */
+        .pos-table { font-size: inherit; width: 100%; border-top: 1px dashed #000; }
+        .pos-table th, .pos-table td { border: none !important; padding: 2px 0; }
+    </style>
+</head>
+<body>
+
+<!-- 列印控制面板 (僅螢幕顯示) -->
+<div class="card shadow no-print mb-4" style="width: 500px;">
+    <div class="card-body">
+        <h5 class="card-title">列印設定</h5>
+        <div class="row g-3">
+            <div class="col-6">
+                <label class="form-label small">紙張尺寸</label>
+                <select id="sizeSelector" class="form-select" onchange="changeFormat()">
+                    <option value="format-a4">A4 標準報表</option>
+                    <option value="format-a5">A5 銷貨單</option>
+                    <option value="format-80mm" selected>熱感紙 80mm (推薦)</option>
+                    <option value="format-58mm">熱感紙 58mm</option>
+                    <option value="format-110mm">熱感紙 110mm</option>
+                </select>
+            </div>
+            <div class="col-6 d-flex align-items-end">
+                <button class="btn btn-primary w-100" onclick="window.print()">
+                    確定列印 (呼叫印表機)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 實際列印區域 -->
+<div id="printable" class="print-area format-80mm">
+    <div class="text-center mb-2">
+        <h4 id="title">銷貨結帳單</h4>
+        <div id="storeName" class="fw-bold">台北總店</div>
+    </div>
+
+    <div class="small border-bottom border-dark pb-2 mb-2">
+        單號：<span id="orderNo">--</span><br>
+        日期：<span id="orderDate">--</span><br>
+        客戶：<span id="custName">零售客戶</span>
+    </div>
+
+    <table class="pos-table mb-2">
+        <thead>
+            <tr>
+                <th style="width:50%">品名</th>
+                <th class="text-center">數</th>
+                <th class="text-end">小計</th>
+            </tr>
+        </thead>
+        <tbody id="itemsBody">
+            <!-- JS 載入 -->
+        </tbody>
+    </table>
+
+    <div class="border-top border-dark pt-2 text-end">
+        <div>合計：<span id="totalAmt">0</span></div>
+        <div class="fw-bold">應付總計：<span id="finalAmt">0</span></div>
+    </div>
+
+    <div class="text-center mt-3 small">
+        *** 謝謝惠顧，請保留收據 ***
+    </div>
+</div>
+
+<script>
+    // 切換格式邏輯
+    function changeFormat() {
+        const selector = document.getElementById('sizeSelector');
+        const paper = document.getElementById('printable');
+        // 移除所有格式類別
+        paper.classList.remove('format-a4', 'format-a5', 'format-58mm', 'format-80mm', 'format-110mm');
+        // 加入選中類別
+        paper.classList.add(selector.value);
+    }
+
+    window.onload = async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const no = urlParams.get('no');
+        const type = urlParams.get('type');
+
+        if(type === 'return') document.getElementById('title').innerText = '銷貨退回單';
+
+        const res = await fetch(`api/get_order_details.php?order_no=${no}`);
+        const result = await res.json();
+        
+        if(result.status === 'success') {
+            const data = result.data;
+            document.getElementById('orderNo').innerText = no;
+            document.getElementById('custName').innerText = data[0].customer_name;
+            document.getElementById('orderDate').innerText = new Date().toLocaleString();
+
+            let total = 0;
+            document.getElementById('itemsBody').innerHTML = data.map(i => {
+                total += i.qty * i.price;
+                return `<tr>
+                    <td>${i.product_name}</td>
+                    <td class="text-center">${i.qty}</td>
+                    <td class="text-end">${(i.qty * i.price).toLocaleString()}</td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('totalAmt').innerText = total.toLocaleString();
+            document.getElementById('finalAmt').innerText = total.toLocaleString();
+        }
+    };
+</script>
+</body>
+</html>

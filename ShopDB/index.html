@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進銷存系統 - 管理中心</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        :root { 
+            --sb-width: 260px; 
+            --sb-collapsed-width: 85px; 
+            --top-height: 60px; 
+            --sb-bg: #2c3e50;
+        }
+
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        body { background: #f0f2f5; display: flex; flex-direction: row; }
+
+        #mobile-header { 
+            display: none; height: var(--top-height); background: var(--sb-bg); 
+            color: white; align-items: center; justify-content: space-between; 
+            padding: 0 15px; width: 100%; z-index: 1060; flex-shrink: 0;
+        }
+
+        #sidebar { 
+            width: var(--sb-width); background: var(--sb-bg); color: white; 
+            transition: width 0.3s ease; flex-shrink: 0; display: flex; 
+            flex-direction: column; z-index: 1050; position: relative;
+        }
+
+        .sidebar-header {
+            height: 70px; display: flex; align-items: center;
+            justify-content: space-between; padding: 0 15px;
+            border-bottom: 1px solid #34495e; overflow: hidden;
+        }
+
+        #pc-toggle-btn { cursor: pointer; color: #95a5a6; padding: 5px 10px; border-radius: 4px; }
+
+        @media (min-width: 769px) {
+            #sidebar.collapsed { width: var(--sb-collapsed-width); }
+            /* 縮小時不隱藏箭頭，而是讓它縮小一點 */
+            #sidebar.collapsed .fa-chevron-down { font-size: 0.7rem; }
+            #sidebar.collapsed .nav-text { display: none; }
+            
+            /* 核心修正：縮小時，子選單的內縮減少，讓圖示能對齊 */
+            #sidebar.collapsed .nav-link.ps-4 {
+                padding-left: 0 !important;
+                text-align: center;
+            }
+        }
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #mobile-header { display: flex; }
+            #sidebar { width: 100%; height: calc(100% - var(--top-height)); position: fixed; top: var(--top-height); left: -100%; z-index: 1055; }
+            #sidebar.mobile-show { left: 0; }
+            .sidebar-header { display: none !important; }
+        }
+
+        .nav-link { color: #bdc3c7; border-bottom: 1px solid #34495e; cursor: pointer; white-space: nowrap; }
+        .nav-link:hover, .nav-link.active { background: #34495e; color: white; }
+        
+        #content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; height: 100%; }
+        .nav-tabs { background: #fff; padding: 8px 10px 0; border-bottom: 1px solid #dee2e6; flex-shrink: 0; }
+        .tab-content { flex: 1; display: flex; flex-direction: column; background: white; overflow: hidden; }
+        iframe { width: 100%; height: 100%; border: none; display: block; flex: 1; }
+        .close-tab { margin-left: 8px; font-size: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="mobile-header">
+        <h5 class="mb-0">進銷存系統</h5>
+        <button class="btn btn-outline-light btn-sm" onclick="MainApp.toggleMobileMenu()"><i class="fa-solid fa-bars"></i></button>
+    </div>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h4 class="fw-bold mb-0 text-white text-nowrap"><i class="fa-solid fa-boxes-packing"></i> <span class="nav-text">進銷存系統</span></h4>
+            <div id="pc-toggle-btn" onclick="MainApp.toggleSidebar()"><i class="fa-solid fa-bars-staggered"></i></div>
+        </div>
+        <div id="dynamic-menu" class="nav flex-column p-2" style="overflow-y: auto; flex: 1;"></div>
+    </div>
+
+    <div id="content-wrapper">
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist"></ul>
+        <div class="tab-content" id="mainTabContents"></div>
+    </div>
+
+<script>
+    const MainApp = {
+        // 現在 toggle 就只是單純的 toggle，不加任何 callback 複雜邏輯
+        toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const isCollapsed = sb.classList.toggle('collapsed');
+            localStorage.setItem('sb_main_collapsed', isCollapsed);
+        },
+
+        toggleMobileMenu() { document.getElementById('sidebar').classList.toggle('mobile-show'); },
+
+        async initMenu() {
+            try {
+                const res = await fetch('api/get_functions.php');
+                const menuData = await res.json();
+                const container = document.getElementById('dynamic-menu');
+                let html = '';
+                menuData.forEach((group, idx) => {
+                    const gid = `m${idx}`;
+                    if (group.items && group.items.length > 0) {
+                        html += `
+                            <a class="nav-link d-flex justify-content-between align-items-center" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#${gid}">
+                                <span>
+                                    <i class="fa-solid ${group.icon || 'fa-folder'} me-1"></i>
+                                    <span class="nav-text">${group.group_name}</span>
+                                </span>
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </a>
+                            <div class="collapse" id="${gid}">
+                                ${group.items.map(item => `
+                                    <a onclick="MainApp.handleNav('${item.name}', '${item.url}')" class="nav-link">
+                                        <i class="fa-solid ${item.icon || 'fa-circle-dot'}"></i>
+                                        <span class="nav-text">${item.name}</span>
+                                    </a>`).join('')}
+                            </div>`;
+                    } else {
+                        html += `<a onclick="MainApp.handleNav('${group.group_name}', '${group.root_url}')" class="nav-link">
+                                    <i class="fa-solid ${group.icon || 'fa-link'} me-1"></i><span class="nav-text">${group.group_name}</span>
+                                 </a>`;
+                    }
+                });
+                html += `<a href="logout.html" class="nav-link" target="_top"><i class="fa-solid fa-power-off me-1"></i><span class="nav-text">登出系統</span></a>`;
+                container.innerHTML = html;
+            } catch (err) { console.error(err); }
+        },
+
+        // --- 核心修正：點擊資料夾的行為 ---
+        handleFolderClick(targetId) {
+            const sb = document.getElementById('sidebar');
+            const el = document.querySelector(targetId);
+            
+            if (sb.classList.contains('collapsed')) {
+                // 如果是縮小的，先展開 Sidebar，完成後再展開子選單
+                this.toggleSidebar(() => {
+                    const bsCollapse = bootstrap.Collapse.getOrCreateInstance(el);
+                    bsCollapse.show();
+                });
+            } else {
+                // 如果已經是寬的，直接 toggle
+                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(el);
+                bsCollapse.toggle();
+            }
+        },
+
+        handleNav(name, url) {
+            if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('mobile-show');
+            this.addTab(name, url);
+        },
+
+        addTab(title, url) {
+            if (!url || url === '#' || url === 'undefined') return;
+            const tid = 't-' + btoa(url).replace(/[^a-z0-9]/gi, '').substring(0, 8);
+            if (document.getElementById(tid)) {
+                bootstrap.Tab.getOrCreateInstance(document.getElementById(tid)).show();
+                return;
+            }
+            const btn = `<li class="nav-item"><button class="nav-link" id="${tid}" data-bs-toggle="tab" data-bs-target="#c-${tid}" type="button">${title} <i class="fa-solid fa-xmark close-tab" onclick="MainApp.closeTab(event,'${tid}')"></i></button></li>`;
+            const con = `<div class="tab-pane fade h-100" id="c-${tid}" role="tabpanel"><iframe src="${url}"></iframe></div>`;
+            document.getElementById('mainTabs').insertAdjacentHTML('beforeend', btn);
+            document.getElementById('mainTabContents').insertAdjacentHTML('beforeend', con);
+            bootstrap.Tab.getOrCreateInstance(document.getElementById(tid)).show();
+        },
+
+        closeTab(e, tid) {
+            e.stopPropagation();
+            document.getElementById(tid).parentElement.remove();
+            document.getElementById('c-' + tid).remove();
+            const tabs = document.querySelectorAll('#mainTabs button');
+            if (tabs.length > 0) bootstrap.Tab.getOrCreateInstance(tabs[tabs.length-1]).show();
+        },
+
+        // 新增：檢查登入狀態函式
+        async checkAuth() {
+            try {
+                // 建立一個專門驗證 Session 的 API，或者利用 get_functions.php 的結果
+                const res = await fetch('api/check_session.php');
+                const status = await res.json();
+
+                if (!status.loggedIn) {
+                    // 若未登入，強制跳轉到登入頁，並帶上 current url 方便之後跳回來 (選配)
+                    window.top.location.href = 'login.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error("Auth Check Failed", err);
+                window.top.location.href = 'login.html';
+                return false;
+            }
+        },
+
+        async init() {
+            // 第一步：檢查權限
+            const isAuthed = await this.checkAuth();
+            if (!isAuthed) return; // 未通過驗證就不繼續執行後續初始化
+
+            // 第二步：初始化介面設定
+            if (localStorage.getItem('sb_main_collapsed') === 'true') {
+                document.getElementById('sidebar').classList.add('collapsed');
+            }
+
+            // 第三步：載入選單與預設頁籤
+            this.initMenu();
+            this.addTab('儀表板', 'dashboard.html');
+        }
+
+    };
+    document.addEventListener("DOMContentLoaded", () => MainApp.init());
+</script>
+</body>
+</html>

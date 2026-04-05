@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>單據列印 - 進銷存系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        /* 螢幕顯示樣式 */
+        body { background: #eee; padding: 20px; }
+        .print-paper { 
+            background: white; width: 210mm; min-height: 297mm; 
+            margin: auto; padding: 20mm; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        /* 列印時的關鍵設定 */
+        @media print {
+            body { background: white; padding: 0; }
+            .print-paper { box-shadow: none; width: 100%; padding: 10mm; }
+            .no-print { display: none !important; } /* 隱藏列印按鈕 */
+        }
+
+        .order-header { border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px; }
+        .table-bordered th, .table-bordered td { border: 1px solid #000 !important; }
+    </style>
+</head>
+<body>
+
+<div class="text-center mb-3 no-print">
+    <button class="btn btn-primary btn-lg" onclick="window.print()">
+        <i class="fa-solid fa-print"></i> 立即列印
+    </button>
+    <button class="btn btn-secondary btn-lg" onclick="window.close()">關閉視窗</button>
+</div>
+
+<div class="print-paper">
+    <div class="order-header text-center">
+        <h2 id="printTitle">銷貨單 (存根聯)</h2>
+        <div class="d-flex justify-content-between mt-4">
+            <div class="text-start">
+                <div>客戶名稱：<span id="custName">--</span></div>
+                <div>聯絡電話：<span id="custTel">--</span></div>
+                <div>送貨地址：<span id="custAddr">--</span></div>
+            </div>
+            <div class="text-end">
+                <div>單據編號：<strong id="orderNo">--</strong></div>
+                <div>列印日期：<span id="printDate">--</span></div>
+                <div>經辦人員：<span id="userName">--</span></div>
+            </div>
+        </div>
+    </div>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr class="text-center">
+                <th style="width: 10%">序號</th>
+                <th style="width: 50%">產品名稱 / 規格</th>
+                <th style="width: 10%">數量</th>
+                <th style="width: 15%">單價</th>
+                <th style="width: 15%">小計</th>
+            </tr>
+        </thead>
+        <tbody id="printItems">
+            <!-- 由 JS 帶入資料 -->
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" class="text-end fw-bold">合計金額</td>
+                <td class="text-end" id="totalAmt">0</td>
+            </tr>
+            <tr>
+                <td colspan="4" class="text-end fw-bold">折扣金額</td>
+                <td class="text-end" id="discountAmt">0</td>
+            </tr>
+            <tr>
+                <td colspan="4" class="text-end fw-bold">應付總計</td>
+                <td class="text-end fw-bold" id="finalAmt">0</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="mt-4">
+        <p>備註：<span id="remark">--</span></p>
+    </div>
+
+    <div class="mt-5 d-flex justify-content-around text-center">
+        <div style="border-top: 1px solid #000; width: 150px; padding-top: 5px;">客戶簽章</div>
+        <div style="border-top: 1px solid #000; width: 150px; padding-top: 5px;">送貨員</div>
+        <div style="border-top: 1px solid #000; width: 150px; padding-top: 5px;">主管覆核</div>
+    </div>
+</div>
+
+<script>
+    window.onload = async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderNo = urlParams.get('no');
+        const type = urlParams.get('type'); // 'sales' 或 'return'
+
+        if(!orderNo) return alert('缺少單號');
+
+        // 修改標題
+        document.getElementById('printTitle').innerText = (type === 'return') ? '銷貨退回單' : '銷貨單 (存根聯)';
+        document.getElementById('printDate').innerText = new Date().toLocaleDateString();
+
+        // 1. 抓取資料 (複用之前的 API)
+        const res = await fetch(`api/get_order_details.php?order_no=${orderNo}`);
+        const result = await res.json();
+
+        if(result.status === 'success') {
+            const data = result.data;
+            // 填寫單頭
+            document.getElementById('orderNo').innerText = orderNo;
+            document.getElementById('custName').innerText = data[0].customer_name;
+            document.getElementById('custTel').innerText = data[0].tel || '-';
+            
+            // 填寫明細
+            let html = '';
+            let total = 0;
+            data.forEach((item, index) => {
+                html += `
+                    <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td>${item.product_name}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-end">${parseFloat(item.price).toLocaleString()}</td>
+                        <td class="text-end">${(item.qty * item.price).toLocaleString()}</td>
+                    </tr>
+                `;
+                total += item.qty * item.price;
+            });
+            document.getElementById('printItems').innerHTML = html;
+            document.getElementById('totalAmt').innerText = total.toLocaleString();
+            // 折扣與最終金額建議從 sales_orders 資料表另外抓取，此處先示意
+            document.getElementById('finalAmt').innerText = total.toLocaleString();
+        }
+    };
+</script>
+</body>
+</html>

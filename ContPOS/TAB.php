@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TAB 清單管理</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-<div class="container-fluid p-4">
+<div class="container-fluid p-2">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
     <div>
       <h3 class="mb-1">TAB 清單管理</h3>
@@ -178,8 +178,8 @@ function loadLookups() {
     var formOptions = '<option value="">(空白)</option>';
     if (resp.tnoList) {
       resp.tnoList.forEach(function(item) {
-        filterOptions += '<option value="' + escapeHtml(item.T_NO) + '">' + escapeHtml(item.T_NO) + '</option>';
-        formOptions += '<option value="' + escapeHtml(item.T_NO) + '">' + escapeHtml(item.T_NO) + '</option>';
+        filterOptions += '<option value="' + escapeHtml(item.T_NO) + '">' + escapeHtml(item.T_NO) + ' ' + escapeHtml(item.T_NAME) + '</option>';
+        formOptions += '<option value="' + escapeHtml(item.T_NO) + '">' + escapeHtml(item.T_NO) + ' ' + escapeHtml(item.T_NAME) + '</option>';
       });
     }
     $('#filterTNo').html(filterOptions);

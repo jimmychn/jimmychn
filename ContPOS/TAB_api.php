@@ -48,7 +48,7 @@ if ($action === 'list') {
 }
 
 if ($action === 'lookups') {
-    $stmt = dbExecute($pdo, "SELECT DISTINCT T_NO FROM TAB ORDER BY T_NO", array(), 'TABAPI', 'LookupTNo', $username, $storeID);
+    $stmt = dbExecute($pdo, "SELECT T_NO,T_NAME FROM TABH ORDER BY T_NO", array(), 'TABAPI', 'LookupTNo', $username, $storeID);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode(array('tnoList' => $rows));
     exit;

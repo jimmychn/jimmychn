@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統設定中心 - 進銷存系統</title>
+    <link href="https://jsdelivr.net" rel="stylesheet">
+    <link rel="stylesheet" href="https://cloudflare.com">
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { background-color: #f4f7f6; }
+        .nav-tabs .nav-link { color: #495057; border: none; padding: 15px 25px; }
+        .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; font-weight: bold; }
+        .table-v-align td { vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-users-gear text-primary me-2"></i>系統管理中心</h2>
+        <button class="btn btn-outline-secondary" onclick="location.href='index.html'"><i class="fa-solid fa-house"></i> 回首頁</button>
+    </div>
+
+    <!-- 分頁導覽 -->
+    <ul class="nav nav-tabs mb-4 bg-white shadow-sm rounded-top" id="adminTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-users">員工帳號管理</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-stores">門市據點管理</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-roles">角色權限定義</button>
+        </li>
+		<li class="nav-item">
+			<button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-blacklist">黑名單管理</button>
+		</li>
+    </ul>
+
+    <div class="tab-content" id="adminTabsContent">
+        
+        <!-- 員工帳號分頁 -->
+        <div class="tab-pane fade show active" id="tab-users">
+            <div class="card border-0 shadow-sm p-3">
+                <div class="mb-3 text-end">
+                    <button class="btn btn-primary" onclick="openUserModal()"><i class="fa-solid fa-user-plus"></i> 新增員工</button>
+                </div>
+                <table class="table table-hover table-v-align">
+                    <thead class="table-light">
+                        <tr><th>帳號</th><th>姓名</th><th>所屬門市</th><th>權限角色</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="userTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 門市管理分頁 -->
+        <div class="tab-pane fade" id="tab-stores">
+            <div class="card border-0 shadow-sm p-3">
+                <div class="mb-3 text-end">
+                    <button class="btn btn-success" onclick="openStoreModal()"><i class="fa-solid fa-store"></i> 新增門市</button>
+                </div>
+                <table class="table table-hover table-v-align">
+                    <thead class="table-light">
+                        <tr><th>門市 ID</th><th>門市名稱</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="storeTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 角色管理分頁 -->
+        <div class="tab-pane fade" id="tab-roles">
+            <div class="card border-0 shadow-sm p-3">
+                <div class="alert alert-info small">
+                    <i class="fa-solid fa-circle-info"></i> 提示：角色 ID 由資料庫維護，權限細項請於「權限勾選牆」設定。
+                </div>
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr><th>角色 ID</th><th>角色名稱</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="roleTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+		<div class="tab-pane fade" id="tab-blacklist">
+			<div class="card border-0 shadow-sm p-3">
+				<div class="alert alert-warning small">
+					<i class="fa-solid fa-shield-halved"></i> 系統會自動封鎖多次登入失敗的 IP。管理員可在此手動解封。
+				</div>
+				<table class="table table-hover align-middle">
+					<thead class="table-light">
+						<tr>
+							<th>來源 IP</th>
+							<th>封鎖類型</th>
+							<th>自動解封時間</th>
+							<th>原因</th>
+							<th>操作</th>
+						</tr>
+					</thead>
+					<tbody id="blacklistTableBody">
+						<!-- 由 JS 動態產生 -->
+					</tbody>
+				</table>
+			</div>
+		</div>
+    </div>
+</div>
+
+<!-- 員工編輯 Modal -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="userForm" class="modal-content border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">員工帳號編輯</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="userId">
+                <div class="mb-3">
+                    <label class="form-label">登入帳號 (Username)</label>
+                    <input type="text" id="username" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">登入密碼 (不修改請留空)</label>
+                    <input type="password" id="password" class="form-control" placeholder="******">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">真實姓名</label>
+                    <input type="text" id="realName" class="form-control" required>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">所屬門市</label>
+                        <select id="storeId" class="form-select"></select>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">權限角色</label>
+                        <select id="roleId" class="form-select"></select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-primary w-100">儲存資料</button></div>
+        </form>
+    </div>
+</div>
+
+<script src="https://jsdelivr.net"></script>
+<script>
+    // 初始化載入
+    window.onload = () => {
+        loadUsers();
+        loadStores();
+        loadRoles();
+		loadBlacklist();	//內增加載入黑名單
+    };
+
+    // 1. 載入員工清單
+    async function loadUsers() {
+        const res = await fetch('api/get_system_data.php?type=users');
+        const data = await res.json();
+        document.getElementById('userTableBody').innerHTML = data.map(u => `
+            <tr>
+                <td class="fw-bold">${u.username}</td>
+                <td>${u.real_name}</td>
+                <td>${u.store_id}</td>
+                <td><span class="badge bg-info text-dark">${u.role_name}</span></td>
+                <td><button class="btn btn-sm btn-outline-secondary" onclick='editUser(${JSON.stringify(u)})'><i class="fa-solid fa-user-pen"></i></button></td>
+            </tr>
+        `).join('');
+    }
+
+    // 2. 載入門市與角色下拉選單
+    async function loadStores() {
+        const res = await fetch('api/get_system_data.php?type=stores');
+        const data = await res.json();
+        document.getElementById('storeId').innerHTML = data.map(s => `<option value="${s.id}">${s.store_name}</option>`).join('');
+        document.getElementById('storeTableBody').innerHTML = data.map(s => `<tr><td>${s.id}</td><td>${s.store_name}</td><td>-</td></tr>`).join('');
+    }
+
+    async function loadRoles() {
+        const res = await fetch('api/get_system_data.php?type=roles');
+        const data = await res.json();
+        document.getElementById('roleId').innerHTML = data.map(r => `<option value="${r.id}">${r.role_name}</option>`).join('');
+        document.getElementById('roleTableBody').innerHTML = data.map(r => `<tr><td>${r.id}</td><td>${r.role_name}</td><td><a href="permission_setup.html?role=${r.id}" class="btn btn-sm btn-outline-primary">編輯權限內容</a></td></tr>`).join('');
+    }
+
+    // 3. 員工表單存檔
+    document.getElementById('userForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            id: document.getElementById('userId').value,
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+            real_name: document.getElementById('realName').value,
+            store_id: document.getElementById('storeId').value,
+            role_id: document.getElementById('roleId').value
+        };
+        const res = await fetch('api/save_user.php', { method: 'POST', body: JSON.stringify(payload) });
+        const result = await res.json();
+        if(result.status === 'success') {
+            bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+            Swal.fire('成功', '員工資料已更新', 'success');
+            loadUsers();
+        }
+    };
+	
+	    // 在 window.onload 內增加載入黑名單
+    // loadBlacklist();
+
+    async function loadBlacklist() {
+        const res = await fetch('api/get_blacklist.php');
+        const data = await res.json();
+        const tbody = document.getElementById('blacklistTableBody');
+        
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">目前沒有被封鎖的 IP</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(b => `
+            <tr>
+                <td class="fw-bold">${b.ip_address}</td>
+                <td>
+                    <span class="badge ${b.block_type === 'permanent' ? 'bg-danger' : 'bg-warning text-dark'}">
+                        ${b.block_type === 'permanent' ? '永久封鎖' : '暫時封鎖'}
+                    </span>
+                </td>
+                <td class="small">${b.unlock_at || '無 (手動解除)'}</td>
+                <td class="text-muted small">${b.reason}</td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="unlockIP('${b.ip_address}')">
+                        <i class="fa-solid fa-unlock"></i> 解除封鎖
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function unlockIP(ip) {
+        const result = await Swal.fire({
+            title: '確定解除封鎖？',
+            text: `即將恢復 IP: ${ip} 的登入權限`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '確定解除',
+            cancelButtonText: '取消'
+        });
+
+        if (result.isConfirmed) {
+            const res = await fetch('api/manage_blacklist.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete', ip: ip })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                Swal.fire('成功', '該 IP 已移出黑名單', 'success');
+                loadBlacklist();
+            }
+        }
+    }
+
+    function openUserModal() {
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+        new bootstrap.Modal(document.getElementById('userModal')).show();
+    }
+</script>
+</body>
+</html>

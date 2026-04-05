@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>員工管理</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -15,16 +15,16 @@
     .table tbody tr:hover { background: #eef7fd; }
     .column-toggle-panel { max-width: 320px; }
     #staffsTable td[data-key="actions"] { width: 180px; white-space: nowrap; }
-    .form-label { font-weight: 600; }
+    .form-label { font-weight: 800; }
   </style>
 </head>
 <body>
 
-<div class="container-fluid p-4">
+<div class="container-fluid p-2">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
     <div>
       <h3 class="mb-1">員工管理</h3>
-      <p class="text-secondary mb-0">示範：StoreID/StoreName + 職位欄位、JSON API、共用 Modal CRUD</p>
+      <p class="text-secondary mb-0">管理員工資料，提供查詢、新增、編輯與刪除功能。</p>
     </div>
   </div>
 
@@ -88,19 +88,15 @@
         </div>
         <div class="modal-body">
           <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">門市</label>
+              <select id="StoreID" name="StoreID" class="form-select" required></select>
+            </div>
             <div class="col-md-3">
               <label class="form-label">員工代號</label>
               <input type="text" id="StaffID" name="StaffID" class="form-control" required maxlength="10">
             </div>
             <div class="col-md-3">
-              <label class="form-label">門市</label>
-              <select id="StoreID" name="StoreID" class="form-select" required></select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">門市名稱</label>
-              <input type="text" id="StoreName" class="form-control" readonly>
-            </div>
-            <div class="col-md-4">
               <label class="form-label">姓名</label>
               <input type="text" id="Name" name="Name" class="form-control" required maxlength="50">
             </div>
@@ -113,6 +109,14 @@
               </select>
             </div>
             <div class="col-md-3">
+              <label class="form-label">郵遞區號</label>
+              <select id="ZIPCode" name="ZIPCode" class="form-select"></select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">生日</label>
+              <input type="date" id="Birthday" name="Birthday" class="form-control">
+            </div>
+            <div class="col-md-3">
               <label class="form-label">職位</label>
               <input type="text" id="Position" name="Position" class="form-control" maxlength="50">
             </div>
@@ -122,10 +126,6 @@
                 <option value="1">在職</option>
                 <option value="0">離職</option>
               </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">郵遞區號</label>
-              <select id="ZIPCode" name="ZIPCode" class="form-select"></select>
             </div>
             <div class="col-md-3">
               <label class="form-label">縣市</label>
@@ -147,7 +147,7 @@
               <label class="form-label">手機</label>
               <input type="text" id="Mobile" name="Mobile" class="form-control" maxlength="20">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6">
               <label class="form-label">Email</label>
               <input type="email" id="Email" name="Email" class="form-control" maxlength="100">
             </div>
@@ -158,10 +158,6 @@
             <div class="col-md-3">
               <label class="form-label">Facebook ID</label>
               <input type="text" id="FacebookID" name="FacebookID" class="form-control" maxlength="50">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">生日</label>
-              <input type="date" id="Birthday" name="Birthday" class="form-control">
             </div>
           </div>
         </div>
@@ -181,7 +177,6 @@ var totalRows = 0;
 var columns = [
   { key: 'StaffID', label: '員工代號' },
   { key: 'StoreID', label: '門市代號' },
-  { key: 'StoreName', label: '門市名稱' },
   { key: 'Name', label: '姓名' },
   { key: 'Gender', label: '性別' },
   { key: 'Position', label: '職位' },
@@ -329,18 +324,12 @@ function openAddModal() {
   $('#formAction').val('insert');
   $('#saveButton').show().text('新增');
   $('#staffForm')[0].reset();
-  $('#StoreName').val('');
   $('#StaffID').prop('readonly', false);
   $('#Gender').val('');
   $('#Position').val('');
   $('#Active').val('1');
   $('#saveButton').removeClass('d-none');
   $('#staffModal').modal('show');
-}
-
-function fillStoreName() {
-  var selected = $('#StoreID').find(':selected');
-  $('#StoreName').val(selected.data('name') || '');
 }
 
 function openEditModal(staffID) {
@@ -351,22 +340,21 @@ function openEditModal(staffID) {
     $('#staffModalTitle').text('編輯員工 ' + staffID);
     $('#formAction').val('update');
     $('#StaffID').val(row.StaffID).prop('readonly', true);
-    $('#StoreID').val(row.StoreID);
-    fillStoreName();
-    $('#Name').val(row.Name);
-    $('#Gender').val(row.Gender || '');
-    $('#Position').val(row.Position || '');
-    $('#Active').val(row.Active == 1 ? '1' : '0');
-    $('#ZIPCode').val(row.ZIPCode).trigger('change');
-    $('#CITY').val(row.CITY || '');
-    $('#AREA').val(row.AREA || '');
-    $('#Address').val(row.Address || '');
-    $('#TEL').val(row.TEL || '');
-    $('#Mobile').val(row.Mobile || '');
-    $('#Email').val(row.Email || '');
-    $('#LineID').val(row.LineID || '');
-    $('#FacebookID').val(row.FacebookID || '');
-    $('#Birthday').val(row.Birthday || '');
+    $('#StoreID').val(row.StoreID).prop('readonly', true);
+    $('#Name').val(row.Name).prop('readonly', false);
+    $('#Gender').val(row.Gender || '').prop('disabled', false);
+    $('#Position').val(row.Position || '').prop('readonly', false);
+    $('#Active').val(row.Active == 1 ? '1' : '0').prop('disabled', false);
+    $('#ZIPCode').val(row.ZIPCode).trigger('change').prop('disabled', false);
+    $('#CITY').val(row.CITY || '').prop('readonly', false);
+    $('#AREA').val(row.AREA || '').prop('readonly', false);
+    $('#Address').val(row.Address || '').prop('readonly', false);
+    $('#TEL').val(row.TEL || '').prop('readonly', false);
+    $('#Mobile').val(row.Mobile || '').prop('readonly', false);
+    $('#Email').val(row.Email || '').prop('readonly', false);
+    $('#LineID').val(row.LineID || '').prop('readonly', false);
+    $('#FacebookID').val(row.FacebookID || '').prop('readonly', false);
+    $('#Birthday').val(row.Birthday || '').prop('readonly', false);
     $('#saveButton').show().text('更新');
     $('#staffModal').modal('show');
   }).fail(function() {
@@ -383,7 +371,6 @@ function openViewModal(staffID) {
     $('#formAction').val('view');
     $('#StaffID').val(row.StaffID).prop('readonly', true);
     $('#StoreID').val(row.StoreID).prop('disabled', true);
-    fillStoreName();
     $('#Name').val(row.Name).prop('readonly', true);
     $('#Gender').val(row.Gender || '').prop('disabled', true);
     $('#Position').val(row.Position || '').prop('readonly', true);
@@ -468,8 +455,6 @@ $(document).ready(function() {
   $('#btnExport').click(exportCsv);
   $('#btnAdd').click(function() { resetModalState(); openAddModal(); });
 
-  $('#StoreID').change(fillStoreName);
-
   $('#ZIPCode').change(function() {
     var selected = $(this).find(':selected');
     $('#CITY').val(selected.data('city') || '');
@@ -480,7 +465,28 @@ $(document).ready(function() {
     e.preventDefault();
     var action = $('#formAction').val();
     if (action !== 'insert' && action !== 'update') return;
-    var data = $(this).serialize();
+    //var data = $(this).serialize();
+    var data = {
+      action: action,
+      StoreID: $('#StoreID').val().trim(),
+      StaffID: $('#StaffID').val().trim(),
+      Name: $('#Name').val().trim(),
+      Gender: $('#Gender').val().trim(),
+      Position: $('#Position').val().trim(),
+      Active: $('#Active').val().trim(),
+      ZIPCode: $('#ZIPCode').val().trim(),
+      CITY: $('#CITY').val().trim(),
+      AREA: $('#AREA').val().trim(),
+      Address: $('#Address').val().trim(),
+      TEL: $('#TEL').val().trim(),
+      Mobile: $('#Mobile').val().trim(),
+      Email: $('#Email').val().trim(),
+      LineID: $('#LineID').val().trim(),
+      FacebookID: $('#FacebookID').val().trim(),
+      Birthday: $('#Birthday').val().trim(),
+      IsActive: $('#IsActive').val()
+    };
+
     $.post('Staffs_api.php', data, function(resp) {
       if (resp.success) {
         $('#staffModal').modal('hide');

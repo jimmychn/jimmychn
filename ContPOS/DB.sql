@@ -42,8 +42,8 @@ VALUES
 
 
 CREATE TABLE Staffs (
-    StaffID VARCHAR(8) PRIMARY KEY,		-- 員工編號(門市代碼3碼+流水號5碼，新增儲存自動產生，編輯時不可變更)
-    StoreID CHAR(3) NOT NULL,          	-- 所屬門市代號
+    StoreID VARCHAR(10) NOT NULL,          	-- 所屬門市代號
+    StaffID VARCHAR(10) NOT NULL,		-- 員工編號(門市代碼3碼+流水號5碼，新增儲存自動產生，編輯時不可變更)
     Name NVARCHAR(50) NOT NULL,        	-- 員工姓名
     Gender CHAR(1) CHECK (Gender IN ('M','F')), -- 男/女
     Position NVARCHAR(50),             	-- 職位 (例如 驗光師、助理)
@@ -61,6 +61,7 @@ CREATE TABLE Staffs (
     Active BIT DEFAULT 1,              	-- 是否在職
     CreatedAt DATETIME DEFAULT GETDATE(),
     ModifiedAt DATETIME DEFAULT GETDATE(),
+    PRIMARY KEY (StoreID, StaffID),
     FOREIGN KEY (StoreID) REFERENCES Stores(StoreID),
 );
 
@@ -85,12 +86,14 @@ VALUES
 
 
 CREATE TABLE Users (
-    UserID VARCHAR(10) PRIMARY KEY,        -- 使用者代號
-    Username NVARCHAR(50) NOT NULL, 	   -- 登入帳號
+    StoreID CHAR(10) NOT NULL,             -- 所屬門市
+    UserID VARCHAR(50) NOT NULL,           -- 登入帳號(使用者代號)
+    UserName NVARCHAR(100) NOT NULL,       -- 顯示名稱
     PasswordHash NVARCHAR(255) NOT NULL,   -- 密碼雜湊 (bcrypt/argon2)
-    StoreID CHAR(3) NOT NULL,              -- 所屬門市
+    Email VARCHAR(100),                    -- 電子郵件
     RoleID INT NOT NULL,                   -- 角色代號
-    IsActive BIT DEFAULT 1                 -- 是否啟用
+    IsActive BIT DEFAULT 1,                -- 是否啟用
+    PRIMARY KEY (StoreID, UserID)
 );
 
 CREATE TABLE Roles (

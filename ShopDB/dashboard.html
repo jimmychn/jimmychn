@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>儀表板 - 進銷存系統</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background: transparent; font-family: "Microsoft JhengHei", sans-serif; }
+        .card-stat { border: none; border-radius: 12px; transition: transform 0.2s; color: white; }
+        .card-stat:hover { transform: translateY(-5px); }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid p-3">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2 id="storeTitle" class="fw-bold">載入中...</h2>
+            <p class="text-muted mb-0" id="welcomeMsg">讀取使用者資訊...</p>
+        </div>
+        <div class="col-md-6 text-md-end align-self-center">
+            <span class="badge bg-white text-dark p-2 shadow-sm border">
+                <i class="fa-regular fa-calendar-days me-1"></i>
+                <span id="currentTime"></span>
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4 text-center">
+        <div class="col-md-3">
+            <div class="card card-stat bg-primary shadow">
+                <div class="card-body">
+                    <h6>今日銷額</h6>
+                    <h2 id="todaySales">$ 0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-stat bg-success shadow">
+                <div class="card-body">
+                    <h6>今日進貨</h6>
+                    <h2 id="todayPurchase">$ 0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-stat bg-warning text-dark shadow">
+                <div class="card-body">
+                    <h6>待處理訂單</h6>
+                    <h2 id="pendingOrders">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-stat bg-danger shadow">
+                <div class="card-body">
+                    <h6>缺貨品項</h6>
+                    <h2 id="lowStockCount">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-4">近七日銷售趨勢</h5>
+                    <div class="chart-container">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">快速管理</h5>
+                    <div class="mt-3">
+                        <label class="small text-muted">目前檢視門市</label>
+                        <select id="storeSwitcher" class="form-select mt-1" onchange="changeViewStore(this.value)">
+                            </select>
+                    </div>
+                    <hr>
+                    <div class="alert alert-info py-2">
+                        <small><i class="fa-solid fa-circle-info me-1"></i> 系統提醒：有 3 筆調撥單尚未簽收。</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    // 封裝成一個 Dashboard 物件，避免與主頁面的變數衝突
+    const Dashboard = {
+        chart: null,
+
+        async init() {
+            console.log("Dashboard 初始化...");
+            this.updateTime();
+            await this.checkAuth();
+            await this.loadStats();
+            await this.initChart();
+            await this.loadStores();
+        },
+
+        updateTime() {
+            document.getElementById('currentTime').innerText = new Date().toLocaleDateString();
+        },
+
+        // AJAX 1: 檢查權限與基本資訊
+        async checkAuth() {
+            try {
+                const res = await fetch('api/check_session.php');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('welcomeMsg').innerText = `歡迎回來，${data.user.username}`;
+                    document.getElementById('storeTitle').innerText = data.user.store_name || '未設定門市';
+                }
+            } catch (e) { console.error("Auth error", e); }
+        },
+
+        // AJAX 2: 載入統計數字 (假設你有 get_stats.php)
+        async loadStats() {
+            try {
+                const res = await fetch('api/get_dashboard_stats.php');
+                const data = await res.json();
+                document.getElementById('todaySales').innerText = `$ ${data.today_sales.toLocaleString()}`;
+                document.getElementById('todayPurchase').innerText = `$ ${data.today_purchase.toLocaleString()}`;
+                document.getElementById('lowStockCount').innerText = data.low_stock;
+                document.getElementById('pendingOrders').innerText = data.pending_orders;
+            } catch (e) { console.warn("Stats API not found, using mock data."); }
+        },
+
+        // AJAX 3: 載入圖表數據並繪製
+        async initChart() {
+            try {
+                const res = await fetch('api/get_dashboard_chart.php');
+                const rawData = await res.json();
+                
+                const labels = rawData.map(d => d.order_date);
+                const values = rawData.map(d => d.daily_total);
+
+                const ctx = document.getElementById('salesChart').getContext('2d');
+                if (this.chart) this.chart.destroy(); // 避免重複重繪
+
+                this.chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '銷售額',
+                            data: values,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } } 
+                    }
+                });
+            } catch (e) { console.error("Chart error", e); }
+        },
+
+        // AJAX 4: 載入門市選單
+        async loadStores() {
+            try {
+                const res = await fetch('api/get_system_data.php?type=stores');
+                const stores = await res.json();
+                const switcher = document.getElementById('storeSwitcher');
+                switcher.innerHTML = stores.map(s => `<option value="${s.id}">${s.store_name}</option>`).join('');
+                
+                // 設定目前選取的門市 (從 localStorage 讀取)
+                const currentStore = localStorage.getItem('view_store_id');
+                if (currentStore) switcher.value = currentStore;
+            } catch (e) { console.error("Load stores error", e); }
+        }
+    };
+
+    // 啟動儀表板
+    document.addEventListener("DOMContentLoaded", () => Dashboard.init());
+
+    // 門市切換邏輯
+    function changeViewStore(sid) {
+        localStorage.setItem('view_store_id', sid);
+        Swal.fire({
+            title: '視角切換',
+            text: '數據已重新過濾',
+            icon: 'success',
+            timer: 1000,
+            showConfirmButton: false
+        }).then(() => {
+            // 重新載入數據而不重新整理整個頁面 (這就是 SPA 的精髓)
+            Dashboard.loadStats();
+            Dashboard.initChart();
+        });
+    }
+</script>
+
+</body>
+</html>

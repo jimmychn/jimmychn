@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>庫存盤點作業 - 進銷存系統</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { background-color: #f1f3f5; }
+        .qty-diff-plus { color: green; font-weight: bold; }
+        .qty-diff-minus { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-clipboard-check text-secondary me-2"></i>庫存盤點/調整</h2>
+        <button class="btn btn-dark shadow-sm" onclick="submitAdjustment()">
+            <i class="fa-solid fa-save"></i> 儲存盤點結果
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body row g-3">
+            <div class="col-md-4">
+                <label class="form-label small">盤點日期</label>
+                <input type="date" id="adj_date" class="form-control">
+            </div>
+            <div class="col-md-8">
+                <label class="form-label small">調整原因備註</label>
+                <input type="text" id="reason" class="form-control" placeholder="例如：2023年度盤點、貨架損壞整理">
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-bold">盤點明細清單</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="openProductSelector()">
+                <i class="fa-solid fa-plus"></i> 加入盤點品項
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>產品名稱</th>
+                        <th class="text-center">帳面庫存</th>
+                        <th class="text-center" style="width: 150px;">實盤數量</th>
+                        <th class="text-center">調整差異</th>
+                        <th>備註</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="adjBody">
+                    <!-- 透過 JS 動態加入 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = () => {
+        document.getElementById('adj_date').valueAsDate = new Date();
+    };
+
+    // 模擬開啟產品選擇器（可複用之前的 get_products API）
+    async function openProductSelector() {
+        const { value: sku } = await Swal.fire({
+            title: '輸入產品條碼或名稱',
+            input: 'text',
+            showCancelButton: true
+        });
+
+        if (sku) {
+            const res = await fetch(`api/get_products.php?q=${sku}`);
+            const result = await res.json();
+            if(result.data.length > 0) {
+                addRow(result.data[0]);
+            } else {
+                Swal.fire('錯誤', '找不到該產品', 'error');
+            }
+        }
+    }
+
+    function addRow(p) {
+        const tbody = document.getElementById('adjBody');
+        const tr = document.createElement('tr');
+        tr.className = 'adj-row';
+        tr.dataset.pid = p.id;
+        tr.innerHTML = `
+            <td>${p.name}<br><small class="text-muted">${p.sku}</small></td>
+            <td class="text-center book-qty">${p.stock_qty}</td>
+            <td><input type="number" class="form-control text-center actual-qty" value="${p.stock_qty}" onchange="updateDiff(this)"></td>
+            <td class="text-center diff-qty">0</td>
+            <td><input type="text" class="form-control form-control-sm item-remark" placeholder="原因..."></td>
+            <td><button class="btn btn-link text-danger" onclick="this.closest('tr').remove()"><i class="fa-solid fa-times"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function updateDiff(input) {
+        const row = input.closest('tr');
+        const book = parseInt(row.querySelector('.book-qty').innerText);
+        const actual = parseInt(input.value) || 0;
+        const diff = actual - book;
+        
+        const diffEl = row.querySelector('.diff-qty');
+        diffEl.innerText = (diff > 0 ? '+' : '') + diff;
+        diffEl.className = 'text-center diff-qty ' + (diff >= 0 ? 'qty-diff-plus' : 'qty-diff-minus');
+    }
+
+    async function submitAdjustment() {
+        const items = [];
+        document.querySelectorAll('.adj-row').forEach(row => {
+            const book = parseInt(row.querySelector('.book-qty').innerText);
+            const actual = parseInt(row.querySelector('.actual-qty').value);
+            items.push({
+                product_id: row.dataset.pid,
+                book_qty: book,
+                actual_qty: actual,
+                adj_qty: actual - book,
+                remark: row.querySelector('.item-remark').value
+            });
+        });
+
+        const payload = {
+            adj_date: document.getElementById('adj_date').value,
+            reason: document.getElementById('reason').value,
+            items: items
+        };
+
+        const res = await fetch('api/save_adjustment.php', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(data.status === 'success') {
+            Swal.fire('成功', '盤點單 ' + data.adj_no + ' 已存檔，庫存已修正', 'success').then(() => location.reload());
+        }
+    }
+</script>
+</body>
+</html>
