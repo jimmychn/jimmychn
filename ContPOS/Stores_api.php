@@ -119,5 +119,11 @@ if ($action === 'lookups') {
     exit;
 }
 
+if ($action === 'lookupStores') {
+    $stmt = dbExecute($pdo, "SELECT StoreID, StoreName FROM Stores WHERE IsActive = 1 ORDER BY StoreID", array(), 'StoresAPI', 'LookupStores', $username, $storeID);
+    echo json_encode(array('stores' => $stmt->fetchAll(PDO::FETCH_ASSOC)));
+    exit;
+}
+
 echo json_encode(array('error' => 'Invalid action'));
 exit;

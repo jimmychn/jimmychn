@@ -2,346 +2,507 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>使用者管理</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <style>
-    table thead th {
-      background-color: #e6f2ff !important;
-    }
-    table tbody tr:nth-child(even) {
-      background-color: #f9f9f9 !important;
-    }
-    table tbody tr:hover {
-      background-color: #d9edf7 !important;
-    }
+    body { background-color: #f8f9fa; }
+    .table thead { background: #d9edf7; }
+    .table tbody tr:nth-child(even) { background: #f9fbfd; }
+    .table tbody tr:hover { background: #eef7fd; }
+    .column-toggle-panel { max-width: 320px; }
+    #usersTable td[data-key="actions"] { width: 180px; white-space: nowrap; }
+    .form-label { font-weight: 600; }
   </style>
 </head>
 <body>
-<div class="container mt-4">
-    <h2>使用者管理</h2>
-    <div class="row mb-3">
- 	    <div class="input-group">
-            <input type="text" id="searchUser" class="form-control" placeholder="搜尋使用者代號或帳號">
-            <button id="btnSearch" class="btn btn-primary">查詢</button>
-            <button id="btnAdd" class="btn btn-success">新增使用者</button>
-        </div>
+<div class="container-fluid p-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <div>
+      <h3 class="mb-1">使用者管理</h3>
+      <p class="text-secondary mb-0">使用 Stores_api.php 取得門市清單、Roles API 取得角色清單，並從門市員工複製 UserID、UserName。</p>
     </div>
-    <table id="userTable" class="table table-bordered table-striped table-hover">
-        <thead class="table-primary">
-            <tr>
-                <th>使用者代號</th>
-                <th>登入帳號</th>
-                <th>門市代號</th>
-                <th>員工姓名</th>
-                <th>角色</th>
-                <th>是否啟用</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody id="userTableBody"></tbody>
+  </div>
+  <div class="row align-items-center mb-3">
+    <div class="col-md-6 mb-2 mb-md-0">
+      <div class="input-group">
+        <input type="text" id="searchInput" class="form-control" placeholder="搜尋 UserID、Username、UserName、門市或角色">
+        <button class="btn btn-primary" id="btnSearch">搜尋</button>
+      </div>
+    </div>
+    <div class="col-md-6 text-md-end">
+      <div class="d-flex justify-content-md-end justify-content-start flex-wrap gap-2">
+        <button class="btn btn-success" id="btnAdd">新增</button>
+        <button class="btn btn-outline-secondary" id="btnExport">CSV</button>
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#columnSettings" aria-expanded="false" aria-controls="columnSettings">欄位顯示</button>
+      </div>
+    </div>
+  </div>
+  <div class="collapse mb-3" id="columnSettings">
+    <div class="card card-body column-toggle-panel">
+      <div class="row g-2" id="columnCheckboxArea"></div>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped" id="usersTable">
+      <thead>
+        <tr>
+          <th data-key="UserID">使用者代號</th>
+          <th data-key="Username">帳號</th>
+          <th data-key="UserName">使用者名稱</th>
+          <th data-key="StoreID">門市代號</th>
+          <th data-key="StoreName">門市名稱</th>
+          <th data-key="RoleID">角色代號</th>
+          <th data-key="RoleName">角色名稱</th>
+          <th data-key="IsActive">啟用</th>
+          <th data-key="actions">操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
     </table>
-	
-    <!--div id="pagination" class="mt-3 text-center"></div-->
-    <ul id="pagination" class="pagination"></ul>
+  </div>
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+    <div class="text-secondary mb-2 mb-md-0" id="pageInfo">第 1 頁 / 共 0 頁</div>
+    <nav><ul class="pagination mb-0" id="pagination"></ul></nav>
+  </div>
 </div>
-	
-<!-- 新增使用者 Modal -->
-<div class="modal fade" id="userModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <form id="userForm">
+        <input type="hidden" id="formAction" name="action" value="">
         <div class="modal-header">
-          <h5 class="modal-title" id="modalTitle">使用者資料</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h5 class="modal-title" id="userModalTitle">使用者資料</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
         </div>
         <div class="modal-body">
-          <input type="hidden" name="action" id="formAction" value="create">
-
-		    <label>選擇員工 (可輸入)</label>
-		    <div class="input-group">
-		      <input type="text" id="staffInput" class="form-control" placeholder="輸入員工編號或姓名開頭">
-		      <select id="staffSelect" class="form-select mt-2"></select>
-			</div>
-			
-			<label>使用者代號</label>
-			<input type="text" name="UserID" id="UserID" class="form-control">
-			<div class="invalid-feedback">此代號已存在</div>
-
-			<label>使用者名稱</label>
-			<input type="text" name="Username" id="Username" class="form-control">
-
-          <label>門市代號</label>
-          <input type="text" name="StoreID" id="StoreID" class="form-control">
-
-          <label>角色</label>
-          <select name="RoleID" id="RoleID" class="form-select"></select>
-
-          <label>密碼</label>
-          <input type="password" name="Password" id="Password" class="form-control">
-
-          <label>是否啟用</label>
-          <select name="IsActive" id="IsActive" class="form-select">
-            <option value="1">啟用</option>
-            <option value="0">停用</option>
-          </select>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">門市</label>
+              <select id="StoreID" name="StoreID" class="form-select" required></select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">門市員工</label>
+              <select id="StaffSourceID" class="form-select" required>
+                <option value="">-- 請先選擇門市 --</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">角色</label>
+              <select id="RoleID" name="RoleID" class="form-select" required></select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">使用者代號 (UserID)</label>
+              <input type="text" id="UserID" name="UserID" class="form-control" readonly required maxlength="20">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">顯示名稱 (UserName)</label>
+              <input type="text" id="UserName" name="UserName" class="form-control" readonly required maxlength="100">
+            </div>
+            <input type="hidden" id="Username" name="Username">
+            <div class="col-md-4">
+              <label class="form-label">EMail</label>
+              <input type="email" id="Email" name="Email" class="form-control" maxlength="100">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">密碼</label>
+              <input type="password" id="Password" name="Password" class="form-control" required maxlength="100">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">啟用狀態</label>
+              <select id="IsActive" name="IsActive" class="form-select">
+                <option value="1">啟用</option>
+                <option value="0">停用</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" id="modalSaveBtn" class="btn btn-primary">儲存</button>
-          <button type="button" id="modalDeleteBtn" class="btn btn-danger d-none">刪除</button>
+          <button type="submit" class="btn btn-primary" id="saveButton">儲存</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-
-
-
 <script>
-//$(function(){
-$(document).ready(function(){
-    let currentPage = 1;
-    let pageSize = 10;
-	let currentSearch = '';
-	let currentKeyword = "";
-
-	function loadUsers(page){
-		//$.getJSON("user_api.php",{action:"list",page:page,keyword:keyword},function(res){
-		$.getJSON('user_api.php?action=list&page=' + page + '&pageSize=' + pageSize + '&search=' + encodeURIComponent(currentSearch), function(res){
-			let rows = '';
-			$.each(res.data, function(i, user){
-				rows += `<tr>
-					<td>${user.UserID}</td>
-					<td>${user.Username}</td>
-					<td>${user.StoreID}</td>
-					<td>${user.Name || ''}</td>
-					<td>${user.RoleName || ''}</td>
-					<td>${user.IsActive == 1 ? '啟用' : '停用'}</td>
-					<td>
-						<button class="btn btn-sm btn-info btnView" data-id="${user.UserID}">檢視</button>
-						<button class="btn btn-sm btn-warning btnEdit" data-id="${user.UserID}">編輯</button>
-						<button class="btn btn-sm btn-danger btnDelete" data-id="${user.UserID}">刪除</button>
-					</td>
-				</tr>`;
-			});
-			$('#userTable tbody').html(rows);
-
-			renderPagination(res.page,res.totalPages);
-		});
-	}
-
-	// 分頁渲染 (沿用 Staffs.php)
-	function renderPagination(page,totalPages){
-	  $("#pagination").empty();
-	  if(page>1){
-		$("#pagination").append(`<li class="page-item"><a class="page-link" href="#" data-page="1">首頁</a></li>`);
-		$("#pagination").append(`<li class="page-item"><a class="page-link" href="#" data-page="${page-1}">上頁</a></li>`);
-	  }
-	  let start=Math.max(1,page-5);
-	  let end=Math.min(totalPages,page+5);
-	  for(let i=start;i<=end;i++){
-		$("#pagination").append(`<li class="page-item ${i===page?'active':''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
-	  }
-	  if(page<totalPages){
-		$("#pagination").append(`<li class="page-item"><a class="page-link" href="#" data-page="${page+1}">下頁</a></li>`);
-		$("#pagination").append(`<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">末頁</a></li>`);
-	  }
-	  $("#pagination").append(`<li class="page-item disabled"><span class="page-link">第 ${page} 頁 / 共 ${totalPages} 頁</span></li>`);
-	}
-
-	// 分頁點擊事件
-	$("#pagination").on("click",".page-link",function(e){
-	  e.preventDefault();
-	  let page=$(this).data("page");
-	  if(page){
-		currentPage=page;
-		loadList(currentPage,currentSearch);
-	  }
-	});
-
-    // 載入 Staffs 下拉選單
-    $.getJSON('staff_api.php?action=combolist', function(data){
-        $.each(data, function(i, staff){
-            $('#staffSelect').append(`<option value="${staff.StaffID}" 
-                data-name="${staff.Name}" data-store="${staff.StoreID}">
-                ${staff.StaffID} - ${staff.Name}
-            </option>`);
-        });
+var currentPage = 1;
+var pageSize = 10;
+var totalRows = 0;
+var columns = [
+  { key: 'UserID', label: '使用者代號' },
+  { key: 'Username', label: '帳號' },
+  { key: 'UserName', label: '使用者名稱' },
+  { key: 'StoreID', label: '門市代號' },
+  { key: 'StoreName', label: '門市名稱' },
+  { key: 'RoleID', label: '角色代號' },
+  { key: 'RoleName', label: '角色名稱' },
+  { key: 'IsActive', label: '啟用' }
+];
+var visibleColumns = loadVisibleColumns();
+function loadVisibleColumns() {
+  var saved = localStorage.getItem('users_columns');
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) { }
+  }
+  var obj = {};
+  columns.forEach(function(col) { obj[col.key] = true; });
+  return obj;
+}
+function saveVisibleColumns() {
+  localStorage.setItem('users_columns', JSON.stringify(visibleColumns));
+}
+function buildColumnToggles() {
+  var html = '';
+  columns.forEach(function(col) {
+    html += '<div class="col-6 col-md-4">';
+    html += '<div class="form-check">';
+    html += '<input class="form-check-input" type="checkbox" id="colToggle_' + col.key + '" data-key="' + col.key + '" ' + (visibleColumns[col.key] ? 'checked' : '') + '>';
+    html += '<label class="form-check-label" for="colToggle_' + col.key + '">' + col.label + '</label>';
+    html += '</div></div>';
+  });
+  $('#columnCheckboxArea').html(html);
+  $('#columnCheckboxArea input[type=checkbox]').on('change', function() {
+    var key = $(this).data('key');
+    visibleColumns[key] = $(this).is(':checked');
+    saveVisibleColumns();
+    applyColumnVisibility();
+  });
+}
+function applyColumnVisibility() {
+  $('#usersTable thead th').each(function() {
+    var key = $(this).data('key');
+    if (!key) return;
+    $(this).toggle(visibleColumns[key] !== false);
+  });
+  $('#usersTable tbody tr').each(function() {
+    $(this).find('td').each(function() {
+      var key = $(this).data('key');
+      if (!key) return;
+      $(this).toggle(visibleColumns[key] !== false);
     });
-
-	// 當輸入框改變時即時查詢
-	$('#staffInput').on('keyup', function(){
-		let keyword = $(this).val().trim();
-		$.getJSON('staff_api.php?action=combolist&keyword=' + encodeURIComponent(keyword), function(data){
-		  $('#staffSelect').empty().append('<option value="">-- 不選擇員工，自行輸入 --</option>');
-		  $.each(data, function(i, staff){
-			$('#staffSelect').append(`<option value="${staff.StaffID}" 
-			  data-name="${staff.Name}" data-store="${staff.StoreID}">
-			  ${staff.StaffID} - ${staff.Name} (${staff.StoreID})
-			</option>`);
-		  });
-		});
-	});
-
-
-    // 選擇員工 → 自動帶入
-    $('#staffSelect').change(function(){
-        let selected = $(this).find(':selected');
-        if(selected.val() !== ""){
-            $('#UserID').val(selected.val());
-            $('#Username').val(selected.data('name'));
-            $('#StoreID').val(selected.data('store'));
-        } else {
-            $('#UserID').val('');
-            $('#Username').val('');
-            $('#StoreID').val('');
-        }
-    });
-
-	// 載入角色清單
-	$.getJSON('user_api.php?action=roles', function(data){
-		$.each(data, function(i, role){
-		  $('#RoleID').append(`<option value="${role.RoleID}">${role.RoleName}</option>`);
-		});
-	});
-
-    // 表單送出
-	$('#userForm').submit(function(e){
-	  e.preventDefault();
-	  // 先清除舊的錯誤狀態
-	  $('#UserID').removeClass('is-invalid');
-	  $('#Username').removeClass('is-invalid');
-
-	  $.post('user_api.php', $(this).serialize(), function(res){
-		  console.log('錯誤顯示');
-		if(res.status==='success'){
-		  alert('儲存成功');
-		  $('#userModal').modal('hide');
-		  loadList(currentPage,currentKeyword);
-		}else{
-		  alert('儲存失敗');
-		}
-	  },'json');
-	});
-
-	 // 查詢按鈕
-	$('#btnSearch').click(function(){
-		currentSearch = $('#searchUser').val().trim();;
-		currentPage = 1;
-		loadUsers(currentPage);
-	});
-
-	// 新增使用者
-  $('#btnAdd').click(function(){
-    $('#modalTitle').text('新增使用者');
-    $('#formAction').val('create');
-    $('#userForm')[0].reset();
-    $('#UserID').prop('readonly', false);
-    $('#Password').prop('required', true);
-    $('#modalSaveBtn').removeClass('d-none');
-    $('#modalDeleteBtn').addClass('d-none');
+  });
+}
+function buildPagination() {
+  var totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  var html = '';
+  var windowSize = 5;
+  var start = Math.max(1, currentPage - Math.floor(windowSize / 2));
+  var end = Math.min(totalPages, start + windowSize - 1);
+  if (end - start < windowSize - 1) { start = Math.max(1, end - windowSize + 1); }
+  html += '<li class="page-item ' + (currentPage <= 1 ? 'disabled' : '') + '">';
+  html += '<a class="page-link" href="#" data-page="' + (currentPage - 1) + '">上一頁</a></li>';
+  for (var p = start; p <= end; p++) {
+    html += '<li class="page-item ' + (p === currentPage ? 'active' : '') + '">';
+    html += '<a class="page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
+  }
+  html += '<li class="page-item ' + (currentPage >= totalPages ? 'disabled' : '') + '">';
+  html += '<a class="page-link" href="#" data-page="' + (currentPage + 1) + '">下一頁</a></li>';
+  $('#pagination').html(html);
+  $('#pageInfo').text('第 ' + currentPage + ' 頁 / 共 ' + totalPages + ' 頁');
+}
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return $('<div>').text(text).html();
+}
+function loadLookups() {
+  $.post('Stores_api.php', { action: 'lookupStores' }, function(resp) {
+    var options = '<option value="">-- 請選門市 --</option>';
+    if (resp.stores) {
+      resp.stores.forEach(function(store) {
+        options += '<option value="' + escapeHtml(store.StoreID) + '">' + escapeHtml(store.StoreID) + ' - ' + escapeHtml(store.StoreName) + '</option>';
+      });
+    }
+    $('#StoreID').html(options);
+  }, 'json').fail(function() {
+    alert('無法載入門市清單');
+  });
+  $.post('roles_api.php', { action: 'lookupRoles' }, function(resp) {
+    var options = '<option value="">-- 請選角色 --</option>';
+    if (resp.roles) {
+      resp.roles.forEach(function(role) {
+        options += '<option value="' + escapeHtml(role.RoleID) + '">' + escapeHtml(role.RoleID) + ' - ' + escapeHtml(role.RoleName) + '</option>';
+      });
+    }
+    $('#RoleID').html(options);
+  }, 'json').fail(function() {
+    alert('無法載入角色清單');
+  });
+}
+function loadStaffsByStore(storeID, selectedStaffID) {
+  $('#StaffSourceID').html('<option value="">讀取中...</option>');
+  $.getJSON('Staffs_api.php', { action: 'lookupByStore', StoreID: storeID }, function(resp) {
+    var options = '<option value="">-- 請選員工 --</option>';
+    if (resp.staffs) {
+      resp.staffs.forEach(function(staff) {
+        options += '<option value="' + escapeHtml(staff.StaffID) + '" data-name="' + escapeHtml(staff.Name) + '" data-email="' + escapeHtml(staff.Email || '') + '">' + escapeHtml(staff.StaffID) + ' - ' + escapeHtml(staff.Name) + '</option>';
+      });
+    }
+    $('#StaffSourceID').html(options);
+    if (selectedStaffID) {
+      $('#StaffSourceID').val(selectedStaffID).trigger('change');
+    }
+  }).fail(function() {
+    $('#StaffSourceID').html('<option value="">-- 載入失敗 --</option>');
+    alert('無法載入門市員工');
+  });
+}
+function openAddModal() {
+  $('#userModalTitle').text('新增使用者');
+  $('#formAction').val('insert');
+  $('#userForm')[0].reset();
+  $('#UserID').prop('readonly', true).val('');
+  $('#UserName').prop('readonly', true).val('');
+  $('#Username').val('');
+  $('#Password').prop('readonly', false).attr('required', true);
+  $('#saveButton').show().text('新增');
+  $('#StoreID').val('');
+  $('#StaffSourceID').html('<option value="">-- 請先選擇門市 --</option>');
+  $('#Email').val('');
+  $('#IsActive').val('1');
+  $('#userModal').modal('show');
+}
+function openEditModal(userID) {
+  $.getJSON('Users_api.php', { action: 'view', UserID: userID }, function(resp) {
+    if (!resp.row) { alert('找不到使用者資料'); return; }
+    var row = resp.row;
+    $('#userModalTitle').text('編輯使用者 ' + userID);
+    $('#formAction').val('update');
+    $('#UserID').val(row.UserID).prop('readonly', true);
+    $('#UserName').val(row.UserName).prop('readonly', true);
+    $('#Username').val(row.Username).prop('readonly', false);
+    $('#RoleID').val(row.RoleID);
+    $('#StoreID').val(row.StoreID);
+    $('#Email').val(row.Email || '');
+    $('#IsActive').val(row.IsActive == 1 ? '1' : '0');
+    $('#Password').val('').attr('required', true);
+    $('#saveButton').show().text('更新');
+    if (row.StoreID) {
+      loadStaffsByStore(row.StoreID, row.UserID);
+    } else {
+      $('#StaffSourceID').html('<option value="">-- 請先選擇門市 --</option>');
+    }
     $('#userModal').modal('show');
+  }).fail(function() {
+    alert('無法取得使用者資料');
   });
-	
-	// 檢視使用者
-	$('#userTableBody').on('click','.btnView',function(){
-	  let id=$(this).data('id');
-	  $.getJSON('user_api.php',{action:'get',UserID:id},function(row){
-		// 設定 Modal 標題
-		$('#modalTitle').text('檢視使用者');
-		$('#formAction').val('');
-
-		// 填入資料並設為唯讀
-		$('#UserID').val(row.UserID).prop('readonly', true).removeClass('is-invalid');
-		$('#Username').val(row.UserName).prop('readonly', true).removeClass('is-invalid');
-		$('#StoreID').val(row.StoreID).prop('readonly', true);
-		$('#RoleID').val(row.RoleID).prop('disabled', true);
-		$('#IsActive').val(row.IsActive).prop('disabled', true);
-		$('#Password').val('').prop('disabled', true);
-
-		// 隱藏儲存、刪除按鈕
-		$('#modalSaveBtn').addClass('d-none');
-		$('#modalDeleteBtn').addClass('d-none');
-
-		// 關閉即時檢查事件，避免誤觸
-		$('#UserID, #Username').off('blur keyup');
-
-		// 顯示 Modal
-		$('#userModal').modal('show');
-	  });
-	});
-  
-	// 編輯使用者
-  $('#userTableBody').on('click','.btnEdit',function(){
-    let id=$(this).data('id');
-    $.getJSON('user_api.php',{action:'get',UserID:id},function(row){
-      $('#modalTitle').text('編輯使用者');
-      $('#formAction').val('update');
-      $('#UserID').val(row.UserID).prop('readonly', true);
-      $('#Username').val(row.UserName).prop('readonly', false);
-      $('#StoreID').val(row.StoreID).prop('readonly', false);
-      $('#RoleID').val(row.RoleID).prop('disabled', false);
-      $('#IsActive').val(row.IsActive).prop('disabled', false);
-      $('#Password').val('').prop('disabled', false).prop('required', false);
-      $('#modalSaveBtn').removeClass('d-none');
-      $('#modalDeleteBtn').addClass('d-none');
-      $('#userModal').modal('show');
-    });
-  });	  
-  
-  // 刪除使用者
-  $('#userTableBody').on('click','.btnDelete',function(){
-    let id=$(this).data('id');
-    $.getJSON('user_api.php',{action:'get',UserID:id},function(row){
-      $('#modalTitle').text('刪除使用者');
-      $('#formAction').val('delete');
-      $('#UserID').val(row.UserID).prop('readonly', true);
-      $('#Username').val(row.UserName).prop('readonly', true);
-      $('#StoreID').val(row.StoreID).prop('readonly', true);
-      $('#RoleID').val(row.RoleID).prop('disabled', true);
-      $('#IsActive').val(row.IsActive).prop('disabled', true);
-      $('#Password').val('').prop('disabled', true);
-      $('#modalSaveBtn').addClass('d-none');
-      $('#modalDeleteBtn').removeClass('d-none');
-      $('#userModal').modal('show');
-    });
+}
+function openViewModal(userID) {
+  $.getJSON('Users_api.php', { action: 'view', UserID: userID }, function(resp) {
+    if (!resp.row) { alert('找不到使用者資料'); return; }
+    var row = resp.row;
+    $('#userModalTitle').text('檢視使用者 ' + userID);
+    $('#formAction').val('view');
+    $('#UserID').val(row.UserID).prop('readonly', true);
+    $('#UserName').val(row.UserName).prop('readonly', true);
+    $('#Username').val(row.Username).prop('readonly', true);
+    $('#Email').val(row.Email || '').prop('readonly', true);
+    $('#RoleID').val(row.RoleID).prop('disabled', true);
+    $('#StoreID').val(row.StoreID).prop('disabled', true);
+    $('#StaffSourceID').html('<option value="' + escapeHtml(row.UserID) + '" data-name="' + escapeHtml(row.UserName) + '">' + escapeHtml(row.UserID) + ' - ' + escapeHtml(row.UserName) + '</option>');
+    $('#StaffSourceID').prop('disabled', true);
+    $('#IsActive').val(row.IsActive == 1 ? '1' : '0').prop('disabled', true);
+    $('#Password').val('').prop('readonly', true).attr('required', false);
+    $('#saveButton').hide();
+    $('#userModal').modal('show');
+  }).fail(function() {
+    alert('無法取得使用者資料');
   });
-  
-  // 刪除按鈕
-  $('#modalDeleteBtn').click(function(){
-    let id=$('#UserID').val();
-    $.post('user_api.php',{action:'delete',UserID:id},function(res){
-      if(res.status==='success'){
-        alert('刪除成功');
+}
+function deleteUser(userID) {
+  if (!confirm('確定要刪除使用者 ' + userID + ' 嗎？')) return;
+  $.post('Users_api.php', { action: 'delete', UserID: userID }, function(resp) {
+    if (resp.success) {
+      loadUsers(currentPage);
+    } else {
+      alert('刪除失敗');
+    }
+  }, 'json').fail(function() {
+    alert('刪除失敗，請稍後再試。');
+  });
+}
+function loadUsers(page) {
+  currentPage = page;
+  var search = $('#searchInput').val().trim();
+  $.getJSON('Users_api.php', { action: 'list', page: page, pageSize: pageSize, search: search }, function(resp) {
+    totalRows = resp.total || 0;
+    var html = '';
+    if (resp.rows && resp.rows.length) {
+      resp.rows.forEach(function(row) {
+        html += '<tr>';
+        html += '<td data-key="UserID">' + escapeHtml(row.UserID) + '</td>';
+        html += '<td data-key="Username">' + escapeHtml(row.Username) + '</td>';
+        html += '<td data-key="UserName">' + escapeHtml(row.UserName) + '</td>';
+        html += '<td data-key="StoreID">' + escapeHtml(row.StoreID) + '</td>';
+        html += '<td data-key="StoreName">' + escapeHtml(row.StoreName) + '</td>';
+        html += '<td data-key="RoleID">' + escapeHtml(row.RoleID) + '</td>';
+        html += '<td data-key="RoleName">' + escapeHtml(row.RoleName) + '</td>';
+        html += '<td data-key="IsActive">' + (row.IsActive == 1 ? '啟用' : '停用') + '</td>';
+        html += '<td data-key="actions" class="text-end">';
+        html += '<button class="btn btn-sm btn-primary me-1 btn-view-user" data-userid="' + escapeHtml(row.UserID) + '">檢視</button>';
+        html += '<button class="btn btn-sm btn-warning me-1 btn-edit-user" data-userid="' + escapeHtml(row.UserID) + '">編輯</button>';
+        html += '<button class="btn btn-sm btn-danger btn-delete-user" data-userid="' + escapeHtml(row.UserID) + '">刪除</button>';
+        html += '</td>';
+        html += '</tr>';
+      });
+    } else {
+      html += '<tr><td colspan="9" class="text-center">目前沒有資料</td></tr>';
+    }
+    $('#usersTable tbody').html(html);
+    applyColumnVisibility();
+    buildPagination();
+  }).fail(function() {
+    alert('無法載入使用者資料，請稍後再試。');
+  });
+}
+$(document).ready(function() {
+  buildColumnToggles();
+  applyColumnVisibility();
+  loadLookups();
+  loadUsers(1);
+  $('#btnSearch').click(function() { loadUsers(1); });
+  $('#searchInput').on('keypress', function(e) { if (e.which === 13) { e.preventDefault(); loadUsers(1); }});
+  $('#btnAdd').click(function() { resetModalState(); openAddModal(); });
+  $('#btnExport').click(function() {
+    var rows = [];
+    var headers = [];
+    $('#usersTable thead th:visible').each(function() {
+      var key = $(this).data('key');
+      if (!key || key === 'actions') return;
+      headers.push($(this).text().trim());
+    });
+    rows.push(headers.join(','));
+    $('#usersTable tbody tr').each(function() {
+      var cells = [];
+      $(this).find('td:visible').each(function() {
+        var key = $(this).data('key');
+        if (!key || key === 'actions') return;
+        cells.push('"' + $(this).text().trim().replace(/"/g, '""') + '"');
+      });
+      if (cells.length > 0) rows.push(cells.join(','));
+    });
+    var csv = rows.join('\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'users_export_page_' + currentPage + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  });
+  $('#StoreID').change(function() {
+    var storeID = $(this).val();
+    if (storeID) {
+      loadStaffsByStore(storeID);
+    } else {
+      $('#StaffSourceID').html('<option value="">-- 請先選擇門市 --</option>');
+    }
+  });
+  $('#StaffSourceID').change(function() {
+    var selected = $(this).find(':selected');
+    if (selected.val()) {
+      $('#UserID').val(selected.val());
+      $('#UserName').val(selected.data('name') || '');
+      $('#Username').val(selected.val());
+      $('#Email').val(selected.data('email') || '');
+    } else {
+      $('#UserID').val('');
+      $('#UserName').val('');
+      $('#Username').val('');
+      $('#Email').val('');
+    }
+  });
+  $('#userForm').submit(function(e) {
+    e.preventDefault();
+    var action = $('#formAction').val();
+    if (action === 'view') {
+      $('#userModal').modal('hide');
+      return;
+    }
+    var data = {
+      action: action,
+      UserID: $('#UserID').val().trim(),
+      Username: $('#Username').val().trim(),
+      UserName: $('#UserName').val().trim(),
+      Email: $('#Email').val().trim(),
+      Password: $('#Password').val(),
+      StoreID: $('#StoreID').val(),
+      RoleID: $('#RoleID').val(),
+      IsActive: $('#IsActive').val()
+    };
+    if (!data.StoreID || !data.RoleID || !data.UserID || !data.Username || !data.UserName || !data.Password) {
+      alert('請完整填寫必填欄位');
+      return;
+    }
+    $.post('Users_api.php', data, function(resp) {
+      if (resp.success) {
         $('#userModal').modal('hide');
-        loadList(currentPage,currentKeyword);
-      }else{
-        alert('刪除失敗');
+        loadUsers(currentPage);
+      } else {
+        alert(resp.message || '儲存失敗');
       }
-    },'json');
+    }, 'json').fail(function() {
+      alert('儲存失敗，請稍後再試。');
+    });
   });
-
-  // 即時檢查 UserID
-	$('#UserID').on('blur', function(){
-		let val = $(this).val().trim();
-		if(val!==''){
-		  $.getJSON('user_api.php?action=check&field=UserID&value='+encodeURIComponent(val), function(res){
-			$('#UserID').removeClass('is-invalid');
-			if(res.status==='error'){
-			  $('#UserID').addClass('is-invalid');
-			}
-		  });
-		}
-	});
-
-	// 即時清除紅框 (keyup 事件)
-	$('#UserID').on('keyup', function(){
-	  $(this).removeClass('is-invalid');
-	});
-
-    loadUsers(currentPage);
+  $('#pagination').on('click', 'a.page-link', function(e) {
+    e.preventDefault();
+    var page = parseInt($(this).data('page'), 10);
+    if (!isNaN(page) && page >= 1) {
+      loadUsers(page);
+    }
+  });
+  makeModalDraggable('#userModal');
 });
+function resetModalState() {
+  $('#StoreID, #RoleID, #StaffSourceID, #IsActive').prop('disabled', false);
+  $('#UserID, #UserName, #Username, #Password, #Email').prop('readonly', false);
+  $('#Password').attr('required', true);
+  $('#saveButton').show();
+}
+function makeModalDraggable(modalSelector) {
+  var isDragging = false;
+  var startX = 0;
+  var startY = 0;
+  var startLeft = 0;
+  var startTop = 0;
+  var $dialog = null;
+  $(modalSelector).on('show.bs.modal', function () {
+    $dialog = $(this).find('.modal-dialog');
+    $dialog.css({ position: '', left: '', top: '', margin: '' });
+  });
+  $(modalSelector + ' .modal-header').css('cursor', 'move').on('mousedown', function (e) {
+    $dialog = $(this).closest('.modal-dialog');
+    isDragging = true;
+    startX = e.pageX;
+    startY = e.pageY;
+    var offset = $dialog.offset();
+    startLeft = offset.left;
+    startTop = offset.top;
+    $dialog.css({ position: 'absolute', margin: 0, left: startLeft + 'px', top: startTop + 'px' });
+    $('body').on('mousemove.modalDrag', function (e) {
+      if (!isDragging) return;
+      $dialog.css({ left: startLeft + (e.pageX - startX) + 'px', top: startTop + (e.pageY - startY) + 'px' });
+    }).on('mouseup.modalDrag', function () {
+      isDragging = false;
+      $('body').off('.modalDrag');
+    });
+    e.preventDefault();
+  });
+  $(modalSelector).on('hidden.bs.modal', function () {
+    if ($dialog) {
+      $dialog.css({ position: '', left: '', top: '', margin: '' });
+      $dialog = null;
+    }
+  });
+}
+$(document).on('click', '.btn-view-user', function() { openViewModal($(this).data('userid')); });
+$(document).on('click', '.btn-edit-user', function() { resetModalState(); openEditModal($(this).data('userid')); });
+$(document).on('click', '.btn-delete-user', function() { deleteUser($(this).data('userid')); });
 </script>
 </body>
 </html>

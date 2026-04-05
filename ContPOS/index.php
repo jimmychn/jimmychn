@@ -75,6 +75,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'Store';
     var moduleMap = {
       Store: 'Stores.php',
       Staff: 'Staffs.php',
+      Tab: 'TAB.php',
       Users: 'Users.php',
       Roles: 'Roles.php',
       Customers: 'Customers_crud.php',
@@ -87,7 +88,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'Store';
     function setActiveMenu(pageKey) {
       $('a[href^="?page="]').removeClass('active-link');
       $('a[href="?page=' + pageKey + '"]').addClass('active-link');
-      var systemPages = ['Store', 'Staff', 'Users', 'Roles', 'Rewards', 'Systemlogs'];
+      var systemPages = ['Store', 'Staff', 'Tab', 'Users', 'Roles', 'Rewards', 'Systemlogs'];
       if (systemPages.indexOf(pageKey) !== -1) {
         $('#desktopSysMenu').collapse('show');
         $('#mobileSysMenu').collapse('show');
@@ -159,6 +160,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'Store';
         openModuleTab(initialPage, {
           Store: '門市',
           Staff: '員工',
+          Tab: 'TAB清單',
           Users: '使用者',
           Roles: '權限',
           Customers: '客戶',

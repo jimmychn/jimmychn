@@ -7,6 +7,14 @@ CREATE TABLE ZIP(
 	AREA nvarchar(20) NOT NULL				-- 行政區域
 );
 
+CREATE TABLE TAB ( 
+    T_NO VARCHAR(20), 
+    TD_NO VARCHAR(20), 
+    TD_NAME NVARCHAR(30), 
+    SEQ INT DEFAULT '(0)', 
+    PRIMARY KEY (T_NO,TD_NO)
+);
+
 CREATE TABLE Stores (
     StoreID CHAR(3) PRIMARY KEY,       	-- 門市代號 (A00, A01, A02, A03...)
     StoreName NVARCHAR(100) NOT NULL,   -- 門市名稱

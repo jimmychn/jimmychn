@@ -498,7 +498,52 @@ $(document).ready(function() {
     var page = parseInt($(this).data('page'));
     if (page >= 1) loadStaffs(page);
   });
+
+  makeModalDraggable('#staffModal');
 });
+
+function makeModalDraggable(modalSelector) {
+  var isDragging = false;
+  var startX = 0;
+  var startY = 0;
+  var startLeft = 0;
+  var startTop = 0;
+  var $dialog = null;
+
+  $(modalSelector).on('show.bs.modal', function () {
+    $dialog = $(this).find('.modal-dialog');
+    $dialog.css({ position: '', left: '', top: '', margin: '' });
+  });
+
+  $(modalSelector + ' .modal-header').css('cursor', 'move').on('mousedown', function (e) {
+    $dialog = $(this).closest('.modal-dialog');
+    isDragging = true;
+    startX = e.pageX;
+    startY = e.pageY;
+    var offset = $dialog.offset();
+    startLeft = offset.left;
+    startTop = offset.top;
+    $dialog.css({ position: 'absolute', margin: 0, left: startLeft + 'px', top: startTop + 'px' });
+    $('body').on('mousemove.modalDrag', function (e) {
+      if (!isDragging) return;
+      $dialog.css({
+        left: startLeft + (e.pageX - startX) + 'px',
+        top: startTop + (e.pageY - startY) + 'px'
+      });
+    }).on('mouseup.modalDrag', function () {
+      isDragging = false;
+      $('body').off('.modalDrag');
+    });
+    e.preventDefault();
+  });
+
+  $(modalSelector).on('hidden.bs.modal', function () {
+    if ($dialog) {
+      $dialog.css({ position: '', left: '', top: '', margin: '' });
+      $dialog = null;
+    }
+  });
+}
 </script>
 </body>
 </html>

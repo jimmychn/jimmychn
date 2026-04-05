@@ -9,6 +9,15 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <style>
+    body { background-color: #f8f9fa; }
+    .table thead { background: #d9edf7; }
+    .table tbody tr:nth-child(even) { background: #f9fbfd; }
+    .table tbody tr:hover { background: #eef7fd; }
+    .column-toggle-panel { max-width: 320px; }
+    #storesTable td[data-key="actions"] { width: 180px; white-space: nowrap; }
+    .form-label { font-weight: 600; }
+  </style>
+  <!--style>
     .table thead { background: #d9edf7; }
     .table tbody tr:nth-of-type(odd) { background: #f9fbfd; }
     .table tbody tr:hover { background: #eef7fd; }
@@ -36,7 +45,7 @@
       padding: .35rem .55rem;
       font-size: .8rem;
     }
-  </style>
+  </style-->
 </head>
 <body class="bg-light">
 
@@ -44,6 +53,7 @@
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
     <div>
       <h3 class="mb-1">門市管理</h3>
+      <p class="text-secondary mb-0">使用 StoreID/StoreName + 職位欄位、JSON API、共用 Modal CRUD</p>
     </div>
   </div>
 
@@ -520,7 +530,52 @@ $(function () {
       alert('儲存失敗，請稍後再試。');
     });
   });
+
+  makeModalDraggable('#storeModal');
 });
+
+function makeModalDraggable(modalSelector) {
+  var isDragging = false;
+  var startX = 0;
+  var startY = 0;
+  var startLeft = 0;
+  var startTop = 0;
+  var $dialog = null;
+
+  $(modalSelector).on('show.bs.modal', function () {
+    $dialog = $(this).find('.modal-dialog');
+    $dialog.css({ position: '', left: '', top: '', margin: '' });
+  });
+
+  $(modalSelector + ' .modal-header').css('cursor', 'move').on('mousedown', function (e) {
+    $dialog = $(this).closest('.modal-dialog');
+    isDragging = true;
+    startX = e.pageX;
+    startY = e.pageY;
+    var offset = $dialog.offset();
+    startLeft = offset.left;
+    startTop = offset.top;
+    $dialog.css({ position: 'absolute', margin: 0, left: startLeft + 'px', top: startTop + 'px' });
+    $('body').on('mousemove.modalDrag', function (e) {
+      if (!isDragging) return;
+      $dialog.css({
+        left: startLeft + (e.pageX - startX) + 'px',
+        top: startTop + (e.pageY - startY) + 'px'
+      });
+    }).on('mouseup.modalDrag', function () {
+      isDragging = false;
+      $('body').off('.modalDrag');
+    });
+    e.preventDefault();
+  });
+
+  $(modalSelector).on('hidden.bs.modal', function () {
+    if ($dialog) {
+      $dialog.css({ position: '', left: '', top: '', margin: '' });
+      $dialog = null;
+    }
+  });
+}
 </script>
 </body>
 </html>

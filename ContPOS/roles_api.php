@@ -114,5 +114,15 @@ if ($action == 'delete') {
     echo json_encode([ "success"=>$ok, "message"=>$ok?"":"DB Error" ]);
 }
 
+if ($action == 'lookupRoles') {
+    try {
+        $sql = "SELECT RoleID, RoleName FROM Roles ORDER BY RoleID";
+        $stmt = $pdo->query($sql);
+        $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(["success" => true, "roles" => $roles]);
+    } catch (Exception $e) {
+        echo json_encode(["success" => false, "roles" => [], "message" => $e->getMessage()]);
+    }
+}
 
 ?>

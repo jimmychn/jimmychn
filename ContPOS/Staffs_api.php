@@ -150,5 +150,12 @@ if ($action === 'lookups') {
     exit;
 }
 
+if ($action === 'lookupByStore') {
+    $selectedStore = isset($_REQUEST['StoreID']) ? trim($_REQUEST['StoreID']) : '';
+    $stmt = dbExecute($pdo, "SELECT StaffID, Name, Email FROM Staffs WHERE StoreID = ? AND Active = 1 ORDER BY Name", array($selectedStore), 'StaffsAPI', 'LookupByStore', $username, $storeID);
+    echo json_encode(array('staffs' => $stmt->fetchAll(PDO::FETCH_ASSOC)));
+    exit;
+}
+
 echo json_encode(array('error' => 'Invalid action'));
 exit;

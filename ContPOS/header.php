@@ -21,6 +21,7 @@ $page = isset($page) ? $page : 'Store';
             <ul class="navbar-nav">
               <li><a class="nav-link <?= $page=='Store' ? 'active-link' : '' ?>" href="?page=Store" onclick="openModuleTab('Store','門市管理'); return false;">門市管理</a></li>
               <li><a class="nav-link <?= $page=='Staff' ? 'active-link' : '' ?>" href="?page=Staff" onclick="openModuleTab('Staff','員工'); return false;">員工</a></li>
+              <li><a class="nav-link <?= $page=='Tab' ? 'active-link' : '' ?>" href="?page=Tab" onclick="openModuleTab('Tab','TAB清單'); return false;">TAB清單</a></li>
               <li><a class="nav-link <?= $page=='Users' ? 'active-link' : '' ?>" href="?page=Users" onclick="openModuleTab('Users','使用者管理'); return false;">使用者管理</a></li>
               <li><a class="nav-link <?= $page=='Roles' ? 'active-link' : '' ?>" href="?page=Roles" onclick="openModuleTab('Roles','權限設定'); return false;">權限設定</a></li>
               <li><a class="nav-link <?= $page=='Rewards' ? 'active-link' : '' ?>" href="?page=Rewards" onclick="openModuleTab('Rewards','積點規則'); return false;">積點規則</a></li>
@@ -50,6 +51,7 @@ $page = isset($page) ? $page : 'Store';
       <div class="collapse ps-3" id="desktopSysMenu">
         <a href="?page=Store" class="<?= $page=='Store' ? 'active-link' : '' ?>" onclick="openModuleTab('Store','門市'); return false;"><span class="menu-icon"><i class="fas fa-store"></i></span><span class="menu-label ms-2">門市</span></a>
         <a href="?page=Staff" class="<?= $page=='Staff' ? 'active-link' : '' ?>" onclick="openModuleTab('Staff','員工'); return false;"><span class="menu-icon"><i class="fas fa-users"></i></span><span class="menu-label ms-2">員工</span></a>
+        <a href="?page=Tab" class="<?= $page=='Tab' ? 'active-link' : '' ?>" onclick="openModuleTab('Tab','TAB清單'); return false;"><span class="menu-icon"><i class="fas fa-list"></i></span><span class="menu-label ms-2">TAB清單</span></a>
         <a href="?page=Users" class="<?= $page=='Users' ? 'active-link' : '' ?>" onclick="openModuleTab('Users','使用者'); return false;"><span class="menu-icon"><i class="fas fa-user-cog"></i></span><span class="menu-label ms-2">使用者</span></a>
         <a href="?page=Roles" class="<?= $page=='Roles' ? 'active-link' : '' ?>" onclick="openModuleTab('Roles','權限'); return false;"><span class="menu-icon"><i class="fas fa-shield-alt"></i></span><span class="menu-label ms-2">權限</span></a>
         <a href="?page=Rewards" class="<?= $page=='Rewards' ? 'active-link' : '' ?>" onclick="openModuleTab('Rewards','積點'); return false;"><span class="menu-icon"><i class="fas fa-gift"></i></span><span class="menu-label ms-2">積點</span></a>
